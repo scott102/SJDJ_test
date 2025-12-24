@@ -1,10 +1,19 @@
-fastapi~=0.116.1
+fastapi
 uvicorn
 jinja2
 python-multipart
-passlib[bcrypt]~=1.7.4
+starlette
+sqlalchemy
+passlib[bcrypt]
+bcrypt==4.0.1
 
+openai
+langchain-openai
+langchain-community
+chromadb
+python-dotenv
 
-sqlalchemy~=2.0.43
-starlette~=0.47.3
-pydantic~=2.11.9
+requests
+beautifulsoup4
+urllib3
+pydantic
