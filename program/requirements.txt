@@ -1,0 +1,10 @@
+fastapi~=0.116.1
+uvicorn
+jinja2
+python-multipart
+passlib[bcrypt]~=1.7.4
+
+
+sqlalchemy~=2.0.43
+starlette~=0.47.3
+pydantic~=2.11.9
