@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"="width=device-width, initial-scale=1.0">
+    <title>온실 장비실 3D 뷰어</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        #container {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #canvas-container {
+            flex: 1;
+            position: relative;
+        }
+
+        #info-panel {
+            width: 400px;
+            background: white;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+            overflow-y: auto;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #info-panel h1 {
+            color: #667eea;
+            font-size: 24px;
+            margin-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        #info-panel .welcome {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+
+        .equipment-info {
+            display: none;
+        }
+
+        .equipment-info.active {
+            display: block;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .equipment-info h2 {
+            color: #764ba2;
+            font-size: 20px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .equipment-info h2::before {
+            content: "●";
+            color: #667eea;
+            margin-right: 10px;
+            font-size: 12px;
+        }
+
+        .equipment-info p {
+            color: #444;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .equipment-info .price {
+            background: #e8f4f8;
+            padding: 10px 15px;
+            border-radius: 5px;
+            border-left: 4px solid #667eea;
+            margin-bottom: 15px;
+            font-size: 15px;
+        }
+
+        .equipment-info .price strong {
+            color: #667eea;
+        }
+
+        .equipment-info .equipment-image {
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 15px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        /* 기타 장비 리스트 스타일 */
+        .other-equipment-section {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 2px solid #e0e0e0;
+        }
+
+        .other-equipment-section h3 {
+            color: #667eea;
+            font-size: 18px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .equipment-list-item {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 15px;
+            padding: 12px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            transition: all 0.2s ease;
+        }
+
+        .equipment-list-item:hover {
+            background: #f0f0f0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .equipment-list-item .equipment-thumbnail {
+            width: 70px;
+            height: 70px;
+            min-width: 70px;
+            object-fit: cover;
+            border-radius: 6px;
+            background: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 11px;
+            text-align: center;
+            padding: 5px;
+        }
+
+        .equipment-list-item .equipment-image {
+            width: 70px;
+            height: 70px;
+            min-width: 70px;
+            object-fit: contain;
+            border-radius: 6px;
+            background: #e0e0e0;
+        }
+
+        .equipment-list-item .equipment-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .equipment-list-item .equipment-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: #764ba2;
+            margin-bottom: 4px;
+        }
+
+        .equipment-list-item .equipment-price {
+            font-size: 13px;
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .equipment-list-item .equipment-description {
+            font-size: 12px;
+            color: #666;
+            line-height: 1.4;
+        }
+
+
+        /* 돌아가기 버튼 스타일 */
+        .back-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .back-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .back-button::before {
+            content: "← ";
+            margin-right: 5px;
+        }
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 18px;
+            text-align: center;
+            z-index: 100;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255,255,255,0.95);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        #controls p {
+            color: #444;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        #controls p:last-child {
+            margin-bottom: 0;
+        }
+
+        #controls strong {
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="canvas-container">
+            <div id="loading">
+                <div class="spinner"></div>
+                <div>장비실 모델 로딩 중...</div>
+            </div>
+            <div id="controls">
+                <p><strong>마우스 좌클릭</strong>: 회전</p>
+                <p><strong>마우스 우클릭</strong>: 이동</p>
+                <p><strong>마우스 휠</strong>: 확대/축소</p>
+                <p><strong>장비 클릭</strong>: 정보 표시</p>
+            </div>
+        </div>
+        <div id="info-panel">
+            <h1>🏭 장비실</h1>
+            <a href="/datas" class="back-button">온실 단지로 돌아가기</a>
+            <p class="welcome">장비를 클릭하면 상세 정보를 확인할 수 있습니다.</p>
+
+            <div id="default-info" class="equipment-info active">
+                <h2>장비실 개요</h2>
+                <p>전북 김제 스마트팜 혁신밸리 실증단지의 장비실입니다.</p>
+                <p>스마트팜 기자재 성능 시험, 신뢰성 실증, 시제품 제작을 위한 전문 장비들이 구축되어 있습니다.</p>
+
+            </div>
+
+            <!-- 기자재 실증장비 -->
+            <div id="greenhouse_environmental_simulation_chamber" class="equipment-info">
+                <h2>온실 환경 모사용 챔버</h2>
+                <p class="price"><strong>장비 이용료(일):</strong> 48,400원 (부가세 포함)</p>
+                <img src="static/equipment_image/greenhouse_environmental_simulation_chamber.jpg" alt="온실 환경 모사용 챔버" class="equipment-image">
+                <p>복합환경 모사챔버는 온실 내부의 온습도 환경을 구현합니다.</p>
+                <p>복합환경제어기 시험시스템에서 입력되는 데이터와 기준 센서 데이터 등을 비교하여 측정된 데이터를 온실 통합 제어기에서 정확한 데이터를 받는지를 확인하기 위한 장비입니다.</p>
+            </div>
+
+            <div id="complex_environmental_controller_test_system" class="equipment-info">
+                <h2>복합환경제어기 시험시스템</h2>
+                <p class="price"><strong>장비 이용료(일):</strong> 227,700원 (부가세 포함)</p>
+                <img src="static/equipment_image/complex_environmental_controller_test_system.jpg" alt="복합환경제어기 시험시스템" class="equipment-image">
+                <p>복합환경제어기 시험시스템은 표준 적합성 관리시스템, 온실통합제어기 시뮬레이터, 센서 및 구동기 노드 시뮬레이터 등으로 구성됩니다.</p>
+                <p>온실통합제어기-센서노드, 구동기 노드간의 표준 준수여부 시험 및 이상 상황 발생시 온실통합제어기의 구동방식 등을 시험하기 위한 시험시스템입니다.</p>
+            </div>
+
+            <div id="pH_sensor_tester" class="equipment-info">
+                <h2>pH 센서 시험기</h2>
+                <p class="price"><strong>장비 이용료(일):</strong> 15,400원 (부가세 포함)</p>
+                <img src="static/equipment_image/pH_sensor_tester.jpg" alt="pH 센서 시험기" class="equipment-image">
+                <p>스마트팜 기자재 중 pH센서의 성능 평가를 목적으로 하는 장비입니다.</p>
+                <p>센서에서 출력되는 데이터 및 작동여부 등을 실시간으로 계측하고 저장하며 시설관리 통합운영시스템에서 요구한 형태의 프로토콜로 데이터를 전송하도록 구성되어 있습니다.</p>
+            </div>
+
+            <div id="CO2_tester" class="equipment-info">
+                <h2>CO₂ 센서 시험기</h2>
+                <p class="price"><strong>장비 이용료(일):</strong> 23,100원 (부가세 포함)</p>
+                <img src="static/equipment_image/CO2_tester.jpg" alt="CO2 센서 시험기" class="equipment-image">
+                <p>스마트팜 기자재 중 CO₂센서의 성능 평가를 목적으로 하는 장비입니다.</p>
+                <p>센서에서 출력되는 데이터 및 작동여부 등을 실시간으로 계측하고 저장하며 시설관리 통합운영시스템에서 요구한 형태의 프로토콜로 데이터를 전송하도록 구성되어 있습니다.</p>
+            </div>
+
+            <div id="EC_sensor_tester" class="equipment-info">
+                <h2>EC 센서 시험기</h2>
+                <p class="price"><strong>장비 이용료(일):</strong> 39,600원 (부가세 포함)</p>
+                <img src="static/equipment_image/EC_sensor_tester.jpg" alt="EC 센서 시험기" class="equipment-image">
+                <p>스마트팜에 사용되는 EC센서 성능을 평가하는 시험기입니다.</p>
+                <p>EC센서는 액체의 전도도를 측정하며, 수질 및 양액관리에 사용됩니다. 전도도를 측정/검사하는 방법은 기준용액을 사용하는 센서를 검교정합니다.</p>
+            </div>
+
+            <div id="sensor_continuity_tester" class="equipment-info">
+                <h2>센서연속 시험기</h2>
+                <p class="price"><strong>장비 이용료(일):</strong> 48,400원 (부가세 포함)</p>
+                <img src="static/equipment_image/sensor_continuity_tester.png" alt="센서연속 시험기" class="equipment-image">
+                <p>항온 항습 환경에서 센서의 신뢰성을 평가하기 위한 목적의 시험기입니다.</p>
+            </div>
+
+            <div id="air_permeability_tester" class="equipment-info">
+                <h2>시설온실용 공기투과율 시험기</h2>
+                <p class="price"><strong>장비 이용료(일):</strong> 41,800원 (부가세 포함)</p>
+                <img src="static/equipment_image/air_permeability_tester.png" alt="시설온실용 공기투과율 시험기" class="equipment-image">
+                <p>시설온실에서 사용되는 피복자재의 공기투과율을 평가하는 장비로서 외부의 온도 및 습도에 따라 비닐하우스의 커튼을 통과하는 공기투과량을 분석하고 데이터를 수집하여 시설온실에 활용되는 피복자재 등을 선정하는데 활용하기 위한 장비입니다.</p>
+            </div>
+
+            <div id="physical_properties_tester_1" class="equipment-info">
+                <h2>물성 시험기</h2>
+                <p class="price"><strong>장비 이용료(일):</strong> 23,100원 (부가세 포함)</p>
+                <img src="static/equipment_image/physical_properties_tester.jpg" alt="물성 시험기" class="equipment-image">
+                <p>스마트팜 온실등에 설치된 직물, 가죽, 벨트, 비닐등의 가자재의 특성(인장시험, 압축시험, 벤딩시험, 반복시험, 정하중 유지시험, 파단 연신율 시험)을 평가하기 위한 시스템입니다.</p>
+                <p>모든 측정데이터를 통합관제시스템으로 전송하여 관리할 수 있도록 통신시스템을 구축하였습니다.</p>
+            </div>
+
+            <div id="physical_properties_tester_2" class="equipment-info">
+                <h2>물성 시험기</h2>
+                <p class="price"><strong>장비 이용료(일):</strong> 23,100원 (부가세 포함)</p>
+                <img src="static/equipment_image/physical_properties_tester.jpg" alt="물성 시험기" class="equipment-image">
+                <p>스마트팜 온실등에 설치된 직물, 가죽, 벨트, 비닐등의 가자재의 특성(인장시험, 압축시험, 벤딩시험, 반복시험, 정하중 유지시험, 파단 연신율 시험)을 평가하기 위한 시스템입니다.</p>
+                <p>모든 측정데이터를 통합관제시스템으로 전송하여 관리할 수 있도록 통신시스템을 구축하였습니다.</p>
+            </div>
+
+            <div id="moisture_permeability_meter" class="equipment-info">
+                <h2>투습도 측정기</h2>
+                <p class="price"><strong>장비 이용료(일):</strong> 45,100원 (부가세 포함)</p>
+                <img src="static/equipment_image/moisture_permeability_meter.jpg" alt="투습도 측정기" class="equipment-image">
+                <p>항온 항습 환경에서 투습도의 측정 목적으로 사용되는 시험기입니다.</p>
+            </div>
+
+            <div id="shading_rate_tester" class="equipment-info">
+                <h2>시설온실용 차광율 시험기</h2>
+                <p class="price"><strong>장비 이용료(일):</strong> 6,600원 (부가세 포함)</p>
+                <img src="static/equipment_image/shading_rate_tester.png" alt="시설온실용 차광율 시험기" class="equipment-image">
+                <p>피복자재의 차광율을 평가하는 장비로서 외부의 온도 및 습도, 광량 등에 따라 비닐하우스의 커튼을 통과하는 차광량을 분석 및 데이터를 활용하기 위한 장비입니다.</p>
+            </div>
+
+            <div id="thermal_shock_tester" class="equipment-info">
+                <h2>열충격 시험기</h2>
+                <p class="price"><strong>장비 이용료(일):</strong> 50,600원 (부가세 포함)</p>
+                <img src="static/equipment_image/thermal_shock_tester.jpg" alt="열충격 시험기" class="equipment-image">
+                <p>고/저온실 댐퍼를 열어 순간적으로 고/저온의 공기를 방출하여 열충격을 가하는 구조입니다.</p>
+            </div>
+
+            <div id="serge_tester" class="equipment-info">
+                <h2>서지 시험기</h2>
+                <p class="price"><strong>장비 이용료(일):</strong> 30,800원 (부가세 포함)</p>
+                <img src="static/equipment_image/serge_tester.png" alt="서지 시험기" class="equipment-image">
+                <p>스마트팜 및 축사에 사용되는 ICT기자재의 뇌임펄스에 대한 내성 평가 목적입니다.</p>
+                <p>IEC61000-4-5에 명시된 표준 뇌임펄스 전압/전류를 발생하는 시험장비로써, 측정된 데이터를 수치화, 디스플레이 가능하도록 구성되어 있습니다.</p>
+            </div>
+
+            <div id="compound_vibration_tester" class="equipment-info">
+                <h2>복합 진동 시험기</h2>
+                <p class="price"><strong>장비 이용료(일):</strong> 382,800원 (부가세 포함)</p>
+                <img src="static/equipment_image/compound_vibration_tester.jpg" alt="복합 진동 시험기" class="equipment-image">
+                <p>온/습도가 유지 공간에 수직/수평 진동을 가해 시료 상태를 확인하는 시험기입니다.</p>
+            </div>
+
+            <div id="durability_test_equipment2" class="equipment-info">
+                <h2>내구성 시험기(AC구동기, DC구동기)</h2>
+                <p class="price"><strong>장비 이용료(일):</strong> 49,500원 (부가세 포함)</p>
+                <img src="static/equipment_image/durability_test_equipment_AC.jpg" alt="AC구동기" class="equipment-image">
+                <img src="static/equipment_image/durability_test_equipment_DC.jpg" alt="DC구동기" class="equipment-image">
+                <p>스마트팜 온실 구동기의 성능을 시험하기 위한 장비입니다.</p>
+                <p>보온 덮개 개폐 장치 및 차광막 개폐장치의 Torque(N·m), RPM(r/min), 모터 효율 등의 성능 시험을 목적으로 합니다.</p>
+                <p>통신 모듈을 부착하여 통합관리 시스템에서 모든 제어가 가능하도록 구성됩니다.</p>
+            </div>
+
+            <div id="rainfall_and_flooding_tester" class="equipment-info">
+                <h2>강우 및 침수 시험기</h2>
+                <p class="price"><strong>장비 이용료(일):</strong> 45,100원 (부가세 포함)</p>
+                <img src="static/equipment_image/rainfall_and_flooding_tester.jpg" alt="강우 및 침수 시험기" class="equipment-image">
+                <p>스마트팜에 사용되는 센서 및 구동기의 높은 방수 능력을 평가하는 시스템(IP54 & IP67)입니다.</p>
+                <p>모든 방향에서 고압으로 분사되는 물줄기로 부터 센서 및 구동기의 전기/기계장치를 보호하는 외함 평가 시험기입니다.</p>
+            </div>
+
+            <div id="soil_drying_oven" class="equipment-info">
+                <h2>토양 건조 오븐</h2>
+<!--                <p class="price"><strong>장비 이용료(일):</strong> 미정</p>-->
+                <p>토양 시료의 수분 함량을 정확하게 측정하기 위한 건조 장비입니다.</p>
+            </div>
+
+            <div id="soil_moisture_content_tester_1" class="equipment-info">
+                <h2>토양 함수율 시험기</h2>
+                <p class="price"><strong>장비 이용료(일):</strong> 40,700원 (부가세 포함)</p>
+                <img src="static/equipment_image/soil_moisture_content_tester.jpg" alt="토양 함수율 시험기" class="equipment-image">
+                <p>스마트팜 기자재 중 토양함수율센서의 성능 평가를 목적으로 하는 장비입니다.</p>
+                <p>센서에서 출력되는 데이터 및 작동여부 등을 실시간으로 계측하고 저장하며 시설관리 통합운영시스템에서 요구한 형태의 프로토콜로 데이터를 전송하도록 구성되어 있습니다.</p>
+            </div>
+
+            <div id="soil_moisture_content_tester_2" class="equipment-info">
+                <h2>토양 함수율 시험기</h2>
+                <p class="price"><strong>장비 이용료(일):</strong> 40,700원 (부가세 포함)</p>
+                <img src="static/equipment_image/soil_moisture_content_tester.jpg" alt="토양 함수율 시험기" class="equipment-image">
+                <p>스마트팜 기자재 중 토양함수율센서의 성능 평가를 목적으로 하는 장비입니다.</p>
+                <p>센서에서 출력되는 데이터 및 작동여부 등을 실시간으로 계측하고 저장하며 시설관리 통합운영시스템에서 요구한 형태의 프로토콜로 데이터를 전송하도록 구성되어 있습니다.</p>
+            </div>
+
+            <div id="laser_cutting_machine" class="equipment-info">
+                <h2>레이저 절단기</h2>
+<!--                <p class="price"><strong>장비 이용료(일):</strong> 미정</p>-->
+                <p>피복재 시료를 정밀하게 절단하여 테스트용 샘플을 제작하는 장비입니다.</p>
+            </div>
+
+            <div id="universal_testing_machine" class="equipment-info">
+                <h2>만능 시험기</h2>
+                <p class="price"><strong>장비 이용료(일):</strong> 40,700원 (부가세 포함)</p>
+                <img src="static/equipment_image/universal_testing_machine.png" alt="만능 시험기" class="equipment-image">
+                <p>농업용 ICT센서, 시설원예 구동기, 축사 기자재의 부품과 재료의 특성(인장시험, 압축시험, 벤딩시험, 반복시험, 정하중 유지시험, 파단 연신율 시험)을 평가하기 위한 시스템입니다.</p>
+                <p>모든 측정데이터를 통합관제시스템으로 전송하여 관리할 수 있도록 통신시스템을 구축하였습니다.</p>
+            </div>
+
+            <div id="nutrient_solution_supply_tester" class="equipment-info">
+                <h2>양액 공급기 시험기</h2>
+                <p class="price"><strong>장비 이용료(일):</strong> 37,400원 (부가세 포함)</p>
+                <img src="static/equipment_image/nutrient_solution_supply_tester.jpg" alt="양액 공급기 시험기" class="equipment-image">
+                <p>관수 펌프에 표시된 유량과 전양정에 관한 정보를 확인하고 제공하는 것을 목적으로 하며, 관수밸브의 내구성 및 안정성 확보를 목적으로 합니다.</p>
+            </div>
+
+            <div id="solar_and_photon_sensor_tester_1" class="equipment-info">
+                <h2>일사 및 광양자 센서 시험기</h2>
+                <p class="price"><strong>장비 이용료(일):</strong> 41,800원 (부가세 포함)</p>
+                <img src="static/equipment_image/solar_and_photon_sensor_tester.jpg" alt="일사 및 광양자 센서 시험기" class="equipment-image">
+                <p>태양광과 유사한 광원을 이용하여 일사 및 광양자 센서를 시험하는 장치입니다.</p>
+                <p>IEC904-9에서 요구하는 모든 규격에서 모두 Class A+ 등급인 솔라 시뮬레이터 시스템입니다.</p>
+                <p>CAL CELL을 이용하여 0.9/0.95/1/1.05/1.1sun의 광도를 확인 후 Reference와 DUT를 비교하여 각 광도에서의 결과값을 검출합니다.</p>
+            </div>
+
+            <div id="solar_and_photon_sensor_tester_2" class="equipment-info">
+                <h2>일사 및 광양자 센서 시험기</h2>
+                <p class="price"><strong>장비 이용료(일):</strong> 41,800원 (부가세 포함)</p>
+                <img src="static/equipment_image/solar_and_photon_sensor_tester.jpg" alt="일사 및 광양자 센서 시험기" class="equipment-image">
+                <p>태양광과 유사한 광원을 이용하여 일사 및 광양자 센서를 시험하는 장치입니다.</p>
+                <p>IEC904-9에서 요구하는 모든 규격에서 모두 Class A+ 등급인 솔라 시뮬레이터 시스템입니다.</p>
+                <p>CAL CELL을 이용하여 0.9/0.95/1/1.05/1.1sun의 광도를 확인 후 Reference와 DUT를 비교하여 각 광도에서의 결과값을 검출합니다.</p>
+            </div>
+
+<!--            <div id="physical_properties_tester" class="equipment-info">-->
+<!--                <h2>작물 정밀분석 시험기</h2>-->
+<!--                <p class="price"><strong>장비 이용료(일):</strong> 50,600원 (부가세 포함)</p>-->
+<!--                <p>생육의 단계별 세포조직 및 미세구조를 관찰하여 빅데이터를 이용하여 식물 및 과실의 변화를 측정합니다.</p>-->
+<!--                <p>탁상형 주사전자현미경은 전자 빔을 시료에 주사하여 표면에서 발생하는 2차전자(SE)를 수집하여 영상신호로 변환, 스캐닝 해주는 주사전자현미경으로 표면 및 미세조직, 잘린 단면 등을 최대 150,000배의 고 배율까지 관찰할 수 있는 장비입니다.</p>-->
+<!--            </div>-->
+
+            <div id="wind_speed_test_equipment" class="equipment-info">
+                <h2>풍향/풍속 시험기</h2>
+                <p class="price"><strong>장비 이용료(일):</strong> 39,600원 (부가세 포함)</p>
+                <img src="static/equipment_image/wind_speed_test_equipment.png" alt="풍향/풍속 시험기" class="equipment-image">
+                <p>스마트팜 온실 센서 중 풍향, 풍속 등을 측정하여 센서의 성능시험을 목적으로 하는 장비입니다.</p>
+                <p>작물의 생육에 주는 영향력을 분석하여 실증단지 실증서비스 인프라 빅데이터에 적용합니다.</p>
+            </div>
+
+             <div id="heat_permeability_tester" class="equipment-info">
+                <h2>열관류율 시험기</h2>
+                <p class="price"><strong>장비 이용료(일):</strong> 255,200원 (부가세 포함)</p>
+                <img src="static/equipment_image/heat_permeability_tester.jpg" alt="열관류율 시험기" class="equipment-image">
+                <p>소재의 열관류율 등의 시험 목적 시험기입니다.</p>
+                <p>열전도율[W/mk] : 1m 두께 재료를 시간당 1℃, 1시간 전달된 열량</p>
+                <p>열관류율(W/㎥k] : 특정 두께를 가진 재료의 열전달 특성</p>
+                <p>열저항값[㎥k/W ] :열관류율의 역수</p>
+            </div>
+                <!-- 기타 실증장비 리스트 -->
+                <div class="other-equipment-section">
+                    <h3>📋 기타 실증장비</h3>
+
+                    <div class="equipment-list-item">
+                        <div class="equipment-thumbnail"><img src="static/equipment_image/air_conditioning_tester.png" alt="냉난방 시험기" class="equipment-image"></div>
+                        <div class="equipment-details">
+                            <div class="equipment-name">냉난방 시험기</div>
+                            <div class="equipment-price">75,900원/일 (부가세 포함)</div>
+                            <div class="equipment-description">냉난방기 시험기는 압축식 냉난방기의 압력, 온도, 전력을 기반으로 냉매 엔탈피를 활용하여 냉난방기의 성능을 측정하는 장비입니다.</div>
+                        </div>
+                    </div>
+
+                    <div class="equipment-list-item">
+                        <div class="equipment-thumbnail"><img src="static/equipment_image/plant_physiological_condition_tester.png" alt="식물 생리상태 시험기" class="equipment-image"></div>
+                        <div class="equipment-details">
+                            <div class="equipment-name">식물 생리상태 시험기</div>
+                            <div class="equipment-price">39,600원/일 (부가세 포함)</div>
+                            <div class="equipment-description">식물 생리 연구의 광합성을 측정하는 장치로, CO2, H2O, 광, 온도를 정밀 제어합니다.</div>
+                        </div>
+                    </div>
+
+                    <div class="equipment-list-item">
+                        <div class="equipment-thumbnail"><img src="static/equipment_image/plant_growth_condition_testing_machine.png" alt="식물 생육상태 시험기" class="equipment-image"></div>
+                        <div class="equipment-details">
+                            <div class="equipment-name">식물 생육상태 시험기</div>
+                            <div class="equipment-price">12,100원/일 (부가세 포함)</div>
+                            <div class="equipment-description">3차원 센서 어레이로 온실 환경 데이터를 실시간 모니터링합니다.</div>
+                        </div>
+                    </div>
+
+                    <div class="equipment-list-item">
+                        <div class="equipment-thumbnail"><img src="static/equipment_image/growth_measuring_instrument.png" alt="생육 측정 시험기" class="equipment-image"></div>
+                        <div class="equipment-details">
+                            <div class="equipment-name">생육 측정 시험기</div>
+                            <div class="equipment-price">33,000원/일 (부가세 포함)</div>
+                            <div class="equipment-description">생육정보를 실시간, 비파괴적으로 원격진단 및 데이터 전송합니다.</div>
+                        </div>
+                    </div>
+
+                    <div class="equipment-list-item">
+                        <div class="equipment-thumbnail"><img src="static/equipment_image/sugar_content_meter.png" alt="당도 측정기" class="equipment-image"></div>
+                        <div class="equipment-details">
+                            <div class="equipment-name">당도 측정기</div>
+                            <div class="equipment-price">2,200원/일 (부가세 포함)</div>
+                            <div class="equipment-description">과실의 당도를 현장에서 실시간으로 측정합니다.</div>
+                        </div>
+                    </div>
+
+                    <div class="equipment-list-item">
+                        <div class="equipment-thumbnail"><img src="static/equipment_image/chromaticity_meter.png" alt="색도 측정기" class="equipment-image"></div>
+                        <div class="equipment-details">
+                            <div class="equipment-name">색도 측정기</div>
+                            <div class="equipment-price">2,200원/일 (부가세 포함)</div>
+                            <div class="equipment-description">과실의 숙도, 숙기 판정을 위한 색도를 측정합니다.</div>
+                        </div>
+                    </div>
+
+                    <div class="equipment-list-item">
+                        <div class="equipment-thumbnail"><img src="static/equipment_image/plant_moisture_meter.png" alt="식물 수분 측정기" class="equipment-image"></div>
+                        <div class="equipment-details">
+                            <div class="equipment-name">식물 수분 측정기</div>
+                            <div class="equipment-price">1,100원/일 (부가세 포함)</div>
+                            <div class="equipment-description">식물 잎에 포함된 수분량을 측정합니다.</div>
+                        </div>
+                    </div>
+
+                    <div class="equipment-list-item">
+                        <div class="equipment-thumbnail"><img src="static/equipment_image/SPAD_meter.png" alt="엽록소 측정기" class="equipment-image"></div>
+                        <div class="equipment-details">
+                            <div class="equipment-name">엽록소 측정기</div>
+                            <div class="equipment-price">1,100원/일 (부가세 포함)</div>
+                            <div class="equipment-description">식물 잎의 엽록소량을 SPAD로 표현합니다.</div>
+                        </div>
+                    </div>
+
+                    <div class="equipment-list-item">
+                        <div class="equipment-thumbnail"><img src="static/equipment_image/weighing_instrument.png" alt="무게 측정기" class="equipment-image"></div>
+                        <div class="equipment-details">
+                            <div class="equipment-name">무게 측정기</div>
+                            <div class="equipment-price">1,100원/일 (부가세 포함)</div>
+                            <div class="equipment-description">피복자재의 환경 변화에 따른 무게를 측정합니다.</div>
+                        </div>
+                    </div>
+
+                    <div class="equipment-list-item">
+                        <div class="equipment-thumbnail"><img src="static/equipment_image/crop_sample_maker.png" alt="작물 샘플 제작기" class="equipment-image"></div>
+                        <div class="equipment-details">
+                            <div class="equipment-name">작물 샘플 제작기</div>
+                            <div class="equipment-price">20,900원/일 (부가세 포함)</div>
+                            <div class="equipment-description">곤충, 병충해 등을 분석하기 위한 현미경 장비입니다.</div>
+                        </div>
+                    </div>
+
+                    <div class="equipment-list-item">
+                        <div class="equipment-thumbnail"><img src="static/equipment_image/multipurpose_water_quality_analysis_tester.png" alt="다목적 수질분석 시험기" class="equipment-image"></div>
+                        <div class="equipment-details">
+                            <div class="equipment-name">다목적 수질분석 시험기</div>
+                            <div class="equipment-price">37,400원/일 (부가세 포함)</div>
+                            <div class="equipment-description">물의 TOC, pH, ORP 등 수질 정도를 측정합니다.</div>
+                        </div>
+                    </div>
+
+                    <div class="equipment-list-item">
+                        <div class="equipment-thumbnail"><img src="static/equipment_image/DO_measuring_instrument.png" alt="DO 측정기" class="equipment-image"></div>
+                        <div class="equipment-details">
+                            <div class="equipment-name">DO 측정기</div>
+                            <div class="equipment-price">3,300원/일 (부가세 포함)</div>
+                            <div class="equipment-description">DO량(용존 산소량)을 측정하여 수질 오염 지표로 활용합니다.</div>
+                        </div>
+                    </div>
+
+                    <div class="equipment-list-item">
+                        <div class="equipment-thumbnail"><img src="static/equipment_image/crop_precision_analysis_tester.png" alt="작물 정밀분석 시험기" class="equipment-image"></div>
+                        <div class="equipment-details">
+                            <div class="equipment-name">작물 정밀분석 시험기</div>
+                            <div class="equipment-price">50,600원/일  (부가세 포함)</div>
+                            <div class="equipment-description">생육의 단계별 세포조직 및 미세구조를 관찰하여 빅데이터를 이용하여 식물 및 과실의 변화를 측정합니다.</div>
+                        </div>
+                    </div>
+
+                    <div class="equipment-list-item">
+                        <div class="equipment-thumbnail"><img src="static/equipment_image/3D_printer.png" alt="3D 프린터" class="equipment-image"></div>
+                        <div class="equipment-details">
+                            <div class="equipment-name">3D 프린터</div>
+                            <div class="equipment-price">238,700원/일 (부가세 포함)</div>
+                            <div class="equipment-description">MIM 방식의 최신 적층 제조 기술이 적용된 금속 3D 프린터입니다.</div>
+                        </div>
+                    </div>
+
+                    <div class="equipment-list-item">
+                        <div class="equipment-thumbnail"><img src="static/equipment_image/3D_scanner.png" alt="3D 스캐너" class="equipment-image"></div>
+                        <div class="equipment-details">
+                            <div class="equipment-name">3D 스캐너</div>
+                            <div class="equipment-price">86,900원/일 (부가세 포함)</div>
+                            <div class="equipment-description">비접촉 광학식 산업용 3차원 스캐너로 고해상도 데이터를 획득합니다.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script>
+        let scene, camera, renderer, controls;
+        let clickableObjects = [];
+        let selectedObject = null;
+        let raycaster, mouse;
+
+        // 장비별 색상 매핑
+        const colorMapping = {
+            // 검은색 처리
+            'computer': 0x1a1a1a,
+            'computer1': 0x1a1a1a,
+            'computer2': 0x1a1a1a,
+            'keyboard': 0x0f0f0f,
+            'keyboard1': 0x0f0f0f,
+            'keyboard3': 0x0f0f0f,
+            'keyboard4': 0x0f0f0f,
+            'keyboard5': 0x0f0f0f,
+            'mouse': 0x1a1a1a,
+            'mouse1': 0x1a1a1a,
+            'mouse2': 0x1a1a1a,
+            'mouse3': 0x1a1a1a,
+            'mouse4': 0x1a1a1a,
+            'table': 0x2b2b2b,
+            'table1': 0x2b2b2b,
+            'table2': 0x2b2b2b,
+            'table3': 0x2b2b2b,
+            'table4': 0x2b2b2b,
+            'monitor': 0x1a1a1a,
+            'monitor1': 0x1a1a1a,
+            'monitor2': 0x1a1a1a,
+            'monitor3': 0x1a1a1a,
+            'monitor4': 0x1a1a1a,
+            'monitor5': 0x1a1a1a,
+            'printer': 0x2a2a2a,
+            'printer1': 0x2a2a2a,
+
+            // 은색 처리
+            'steel': 0x000000,
+
+            // 벽과 바닥
+            'floor': 0xe8e8e8,
+            'wall': 0xf0f0f0,
+            'wall1': 0xf0f0f0,
+            'wall2': 0xf0f0f0,
+            'wall3': 0xf0f0f0,
+
+            // 클릭 가능한 장비들 - 다양한 색상
+            'greenhouse_environmental_simulation_chamber': 0x4a90e2,
+            'complex_environmental_controller_test_system': 0x2ecc71,
+            'pH_sensor_tester': 0xe74c3c,
+            'CO2_tester': 0xf39c12,
+            'EC_sensor_tester': 0x9b59b6,
+            'sensor_continuity_tester': 0x1abc9c,
+            'air_permeability_tester': 0x3498db,
+            'heat_permeability_tester': 0xe67e22,
+            'moisture_permeability_meter': 0x16a085,
+            'shading_rate_tester': 0x2b2b2b,
+            'thermal_shock_tester': 0xc0392b,
+            'serge_tester': 0x8e44ad,
+            'compound_vibration_tester': 0x27ae60,
+            'durability_test_equipment2': 0x2980b9,
+            'rainfall_and_flooding_tester': 0x2c3e50,
+            'soil_drying_oven': 0xe8b86d,
+            'soil_moisture_content_tester_1': 0x7dcea0,
+            'soil_moisture_content_tester_2': 0x7dcea0,
+            'laser_cutting_machine': 0xc44569,
+            'universal_testing_machine': 0x5dade2,
+            'nutrient_solution_supply_tester': 0x48c9b0,
+            'solar_and_photon_sensor_tester_1': 0xf7dc6f,
+            'solar_and_photon_sensor_tester_2': 0xf7dc6f,
+            'physical_properties_tester_1': 0xbb8fce,
+            'physical_properties_tester_2': 0xbb8fce,
+            'wind_speed_test_equipment': 0x52b3d9
+        };
+
+        // 클릭 불가능한 객체들
+        const nonClickableKeys = ['computer', 'keyboard', 'mouse', 'table', 'monitor', 'printer', 'steel', 'floor', 'wall'];
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf5f5f5);
+            scene.fog = new THREE.Fog(0xf5f5f5, 20, 100);
+
+            const container = document.getElementById('canvas-container');
+            camera = new THREE.PerspectiveCamera(
+                5,
+                container.clientWidth / container.clientHeight,
+                0.1,
+                1000
+            );
+            camera.position.set(0, 3, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.outputEncoding = THREE.sRGBEncoding;
+            container.appendChild(renderer.domElement);
+
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+
+            const directionalLight1 = new THREE.DirectionalLight(0xffffff, 0.4);
+            directionalLight1.position.set(10, 15, 10);
+            directionalLight1.castShadow = true;
+            directionalLight1.shadow.camera.near = 0.1;
+            directionalLight1.shadow.camera.far = 100;
+            directionalLight1.shadow.camera.left = -20;
+            directionalLight1.shadow.camera.right = 20;
+            directionalLight1.shadow.camera.top = 20;
+            directionalLight1.shadow.camera.bottom = -20;
+            directionalLight1.shadow.mapSize.width = 2048;
+            directionalLight1.shadow.mapSize.height = 2048;
+            scene.add(directionalLight1);
+
+            const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.2);
+            directionalLight2.position.set(-10, 10, -10);
+            scene.add(directionalLight2);
+
+            const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.3);
+            scene.add(hemisphereLight);
+
+            // Ground
+            const groundGeometry = new THREE.PlaneGeometry(100, 100);
+            const groundMaterial = new THREE.MeshStandardMaterial({
+                color: 0xdddddd,
+                roughness: 0.9,
+                metalness: 0.1
+            });
+            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            scene.add(ground);
+
+            const gridHelper = new THREE.GridHelper(100, 100, 0xaaaaaa, 0xcccccc);
+            scene.add(gridHelper);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.minDistance = 0.1;
+            controls.maxDistance = 100;
+            controls.maxPolarAngle = Math.PI / 2 - 0.1;
+            controls.target.set(0, 0, 0);
+
+            camera.lookAt(0, 0, 0);
+
+            loadModel();
+
+            window.addEventListener('resize', onWindowResize);
+            renderer.domElement.addEventListener('click', onMouseClick);
+            renderer.domElement.addEventListener('mousemove', onMouseMove);
+
+            animate();
+        }
+
+        function loadModel() {
+            const loader = new THREE.GLTFLoader();
+
+            loader.load(
+                '/static/equipment_storage_room.glb',
+                function(gltf) {
+                    const model = gltf.scene;
+
+                    model.traverse((child) => {
+                        if (child.isMesh) {
+                            child.castShadow = true;
+                            child.receiveShadow = true;
+
+                            const name = child.name;
+                            let isClickable = true;
+                            let colorKey = null;
+
+                            // 정확한 이름 매칭
+                            if (colorMapping[name]) {
+                                colorKey = name;
+                            }
+
+                            // 색상 매핑이 있는 경우
+                            if (colorKey) {
+                                const isMetallic = colorKey === 'steel';
+                                const isFloorOrWall = colorKey.startsWith('floor') || colorKey.startsWith('wall');
+                                const material = new THREE.MeshStandardMaterial({
+                                    color: colorMapping[colorKey],
+                                    roughness: isMetallic ? 0.3 : (isFloorOrWall ? 0.9 : 0.7),
+                                    metalness: isMetallic ? 0.9 : (isFloorOrWall ? 0.1 : 0.2)
+                                });
+                                child.material = material;
+
+                                // 클릭 불가 객체 체크
+                                for (let key of nonClickableKeys) {
+                                    if (colorKey.startsWith(key)) {
+                                        isClickable = false;
+                                        break;
+                                    }
+                                }
+                            }
+                            // 기타 객체들
+                            else if (!name.startsWith('pCube') &&
+                                     !name.startsWith('polySurface') &&
+                                     !name.startsWith('pCylinder') &&
+                                     !name.startsWith('transform') &&
+                                     !name.startsWith('cube')) {
+                                const material = new THREE.MeshStandardMaterial({
+                                    color: 0xcccccc,
+                                    roughness: 0.7,
+                                    metalness: 0.2
+                                });
+                                child.material = material;
+                                isClickable = false;
+                            } else {
+                                isClickable = false;
+                            }
+
+                            // 클릭 가능한 장비 등록
+                            if (isClickable && colorKey) {
+                                child.userData.equipmentId = colorKey;
+                                clickableObjects.push(child);
+                            }
+                        }
+                    });
+
+                    scene.add(model);
+
+                    // Center model
+                    const box = new THREE.Box3().setFromObject(model);
+                    const center = box.getCenter(new THREE.Vector3());
+                    const size = box.getSize(new THREE.Vector3());
+
+                    model.position.x = -center.x;
+                    model.position.z = -center.z;
+                    model.position.y = -box.min.y;
+
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    camera.position.set(0, maxDim * 12, 0);
+                    controls.target.set(0, 0, 0);
+                    camera.lookAt(0, 0, 0);
+                    controls.update();
+
+                    document.getElementById('loading').style.display = 'none';
+                    console.log(`로딩 완료: ${clickableObjects.length}개의 클릭 가능한 장비`);
+                },
+                function(xhr) {
+                    const percent = (xhr.loaded / xhr.total * 100).toFixed(0);
+                    document.getElementById('loading').innerHTML =
+                        `<div class="spinner"></div><div>장비실 모델 로딩 중... ${percent}%</div>`;
+                },
+                function(error) {
+                    console.error('모델 로딩 오류:', error);
+                    document.getElementById('loading').innerHTML =
+                        '<div style="color: white;">모델을 불러올 수 없습니다.</div>';
+                }
+            );
+        }
+
+        function onMouseMove(event) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(clickableObjects, false);
+
+            renderer.domElement.style.cursor = 'default';
+
+            if (intersects.length > 0) {
+                renderer.domElement.style.cursor = 'pointer';
+            }
+        }
+
+        function onMouseClick(event) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(clickableObjects, false);
+
+            // Reset previous selection
+            if (selectedObject) {
+                selectedObject.material.emissive.setHex(0x000000);
+            }
+
+            if (intersects.length > 0) {
+                const object = intersects[0].object;
+                selectedObject = object;
+
+                // Highlight
+                object.material.emissive.setHex(0x444444);
+                object.material.emissiveIntensity = 0.3;
+
+                showEquipmentInfo(object.userData.equipmentId);
+            }
+        }
+
+        function showEquipmentInfo(equipmentId) {
+            const allPanels = document.querySelectorAll('.equipment-info');
+            allPanels.forEach(panel => panel.classList.remove('active'));
+
+            const panel = document.getElementById(equipmentId);
+            if (panel) {
+                panel.classList.add('active');
+            } else {
+                document.getElementById('default-info').classList.add('active');
+            }
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('canvas-container');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        init();
+    </script>
+</body>
+</html>

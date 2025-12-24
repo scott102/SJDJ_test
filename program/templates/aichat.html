@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>AI 챗봇</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        /* 🚨 body에 상단바 높이만큼 패딩을 추가하여 겹치는 문제 해결 */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            min-height: 100vh; /* 뷰포트 전체 높이를 확보 */
+        }
+
+        .chat-wrapper {
+            /* 챗봇 창을 페이지 중앙에 배치하는 컨테이너 */
+            display: flex;
+            justify-content: center; /* 수평 중앙 정렬 */
+            align-items: center; /* 수직 중앙 정렬 */
+            width: 100%;
+            /* 뷰포트 높이에서 body의 padding-top을 뺀 값으로 설정 */
+            min-height: calc(100vh - 60px);
+        }
+
+        #chat-window {
+            /* 🚨 수정: 챗봇 창 크기를 화면에 비례하여 조정 */
+            width: 60vw;
+            height: 70vh;
+            max-width: 900px; /* 데스크톱에서 너무 커지는 것 방지 */
+            min-height: 450px; /* 최소 높이 보장 */
+
+            border: 1px solid #ccc;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin: 20px auto; /* 상하 여백 추가하여 뷰포트 중앙보다 살짝 위로 배치 */
+        }
+        #messages {
+            flex-grow: 1;
+            padding: 15px; /* 패딩 증가 */
+            overflow-y: auto;
+            word-wrap: break-word;
+        }
+        #input-area {
+            display: flex;
+            padding: 15px; /* 패딩 증가 */
+            border-top: 1px solid #eee;
+            background-color: #f9f9f9;
+        }
+        #user-input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            font-size: 16px; /* 폰트 크기 증가 */
+        }
+        #send-button {
+            padding: 10px 20px; /* 버튼 크기 증가 */
+            margin-left: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        #send-button:hover {
+            background-color: #0056b3;
+        }
+        .message {
+            margin-bottom: 15px; /* 메시지 간 간격 증가 */
+            padding: 10px 15px; /* 메시지 내부 패딩 증가 */
+            border-radius: 18px;
+            max-width: 80%;
+        }
+        .user {
+            margin-left: auto;
+            text-align: right;
+            background-color: #d1e7ff;
+            border-bottom-right-radius: 2px;
+        }
+        .bot {
+            margin-right: auto;
+            text-align: left;
+            background-color: #e2e3e5;
+            border-bottom-left-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="top-bar">
+        <div class="navbar_name">
+            <a href="/">S.J.D.J</a>
+        </div>
+
+        <ul class="navbar_list">
+            <li><a href="/about">실증단지 소개</a></li>
+            <li><a href="/datas">온실 3D 모델링</a></li>
+            <li><a href="/participate">실시간 데이터</a></li>
+            <li><a href="/sns">의견 게시판</a></li>
+            <li><a href="/aichat">AI 챗봇</a></li>
+        </ul>
+
+        <ul class="user-info">
+            {% if user %}
+                {{ user.username }} ({{ user.role }}) 님 로그인됨 |
+                <a href="/logout">로그아웃</a>
+            {% else %}
+                <a href="/login">로그인</a> /
+                <a href="/register">회원가입</a>
+            {% endif %}
+        </ul>
+    </nav>
+
+    <div class="chat-wrapper">
+        <div id="chat-window">
+            <div id="messages">
+                <!-- 메시지는 JS에서 처리 -->
+            </div>
+            <div id="input-area">
+                <input type="text" id="user-input" placeholder="메시지를 입력하세요...">
+                <button id="send-button">전송</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        const inputElement = document.getElementById('user-input');
+        const messagesDiv = document.getElementById('messages');
+
+        document.getElementById('send-button').addEventListener('click', () => handleManualSend());
+        inputElement.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleManualSend();
+            }
+        });
+
+        // 수동 전송 핸들러: 입력창 값 사용 및 입력창 비우기 처리
+        function handleManualSend() {
+            const message = inputElement.value.trim();
+            if (message) {
+                // 입력창을 비우는 로직을 여기에만 둠
+                inputElement.value = '';
+                sendMessage(message);
+            }
+        }
+
+        // 메시지를 인수로 받아 처리
+        function sendMessage(message) {
+            const msgToSend = message;
+
+            if (!msgToSend) return;
+
+            // 사용자 메시지 추가
+            const userMsg = document.createElement('div');
+            userMsg.className = 'message user';
+            userMsg.textContent = msgToSend;
+            messagesDiv.appendChild(userMsg);
+
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+            // 챗봇 응답 대기 메시지
+            const botThinking = document.createElement('div');
+            botThinking.className = 'message bot';
+            botThinking.textContent = '...답변을 생각 중입니다...';
+            messagesDiv.appendChild(botThinking);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+
+            // FastAPI API로 메시지 전송
+            fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ message: msgToSend }),
+            })
+            .then(response => {
+                if (!response.ok) {
+                    // HTTP 오류 상태 코드 처리 (예: 500 Internal Server Error)
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                // 대기 메시지 제거
+                messagesDiv.removeChild(botThinking);
+
+                const botMsg = document.createElement('div');
+                botMsg.className = 'message bot';
+
+                // --- URL 자동 감지 및 링크 변환 로직 ---
+                const botResponseText = data.response;
+
+                // URL을 감지하여 <a> 태그로 변환하는 정규 표현식
+                const urlRegex = /(https?:\/\/[^\s]+)/g;
+
+                // 텍스트를 HTML 형식으로 변환하여 innerHTML에 할당
+                botMsg.innerHTML = botResponseText.replace(urlRegex, function(url) {
+                    return '<a href="' + url + '" target="_blank" style="color:#007bff; text-decoration:underline; font-weight:bold;">' + url + '</a>';
+                });
+                // ------------------------------------
+
+                messagesDiv.appendChild(botMsg);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                messagesDiv.removeChild(botThinking);
+                const errorMsg = document.createElement('div');
+                errorMsg.className = 'message bot';
+                errorMsg.textContent = `통신 오류가 발생했습니다. 챗봇 초기화 상태를 확인해주세요. (${error.message})`;
+                messagesDiv.appendChild(errorMsg);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            });
+        }
+
+        // 🚨 페이지 로드 시 실행되는 자동 응답 로직
+        document.addEventListener('DOMContentLoaded', function() {
+            // URL 파라미터에서 'query' 값 가져오기
+            const urlParams = new URLSearchParams(window.location.search);
+            const initialQuery = urlParams.get('query');
+
+            // 웰컴 메시지 추가 (자동 요청이 없을 때만 초기 메시지 표시)
+            if (!initialQuery) {
+                const welcomeMsg = document.createElement('div');
+                welcomeMsg.className = 'message bot';
+                welcomeMsg.textContent = '안녕하세요! 웹사이트에 대해 궁금한 점이나, 가고 싶은 페이지를 말씀해주세요.';
+                messagesDiv.appendChild(welcomeMsg);
+            }
+
+            if (initialQuery) {
+                // query가 있으면 자동으로 메시지 전송 시작
+                sendMessage(initialQuery);
+            }
+        });
+    </script>
+</body>
+</html>

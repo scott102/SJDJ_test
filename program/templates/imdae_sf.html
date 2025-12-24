@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>주요 시설 안내</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        /* 시설 안내 페이지 전용 스타일 */
+        .facility-header {
+            text-align: center;
+            margin: 40px 0 30px;
+            color: #008000;
+            font-size: 2.2em;
+        }
+
+        /* 🚨 전체 폭 섹션 스타일 */
+        .facility-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 0;
+            margin-bottom: 30px;
+            background: white; /* 기본 배경 */
+            border-bottom: 1px solid #ddd;
+        }
+        /* 홀수 번째 섹션에 배경색을 넣어 시각적으로 구분 */
+        .facility-section:nth-child(even) {
+            background-color: #f0f8f0;
+        }
+
+        /* 🚨 이미지 컨테이너 (최대 너비로 확대) */
+        .facility-image-container {
+            width: 90%; /* 화면의 90% 너비 사용 */
+            max-width: 1200px; /* 너무 커지는 것을 방지 */
+            margin-bottom: 25px;
+            overflow: hidden;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        .facility-image {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* 🚨 상세 설명 영역 */
+        .facility-detail {
+            width: 90%;
+            max-width: 1000px;
+            padding: 0 20px;
+        }
+        .facility-detail h2 {
+            font-size: 2em;
+            color: #2c3e50;
+            border-bottom: 4px solid #b4cd13;
+            padding-bottom: 10px;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+        .facility-detail p {
+            font-size: 1.1em;
+            line-height: 1.7;
+            margin-bottom: 20px;
+        }
+        .facility-detail strong {
+            display: block;
+            margin-top: 15px;
+            color: #007acc;
+            font-size: 1.2em;
+        }
+        .facility-detail ul {
+            padding-left: 25px;
+            line-height: 1.6;
+            list-style: disc;
+        }
+        .facility-detail li {
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="top-bar">
+        <div class="navbar_name">
+            <a href="/">S.J.D.J</a>
+        </div>
+
+        <ul class="navbar_list">
+            <li><a href="/about">실증단지 소개</a></li>
+            <li><a href="/datas">온실 3D 모델링</a></li>
+            <li><a href="/participate">실시간 데이터</a></li>
+            <li><a href="/sns">의견 게시판</a></li>
+            <li><a href="/aichat">AI 챗봇</a></li>
+        </ul>
+
+        <ul class="user-info">
+            {% if user %}
+                {{ user.username }} ({{ user.role }}) 님 로그인됨 |
+                <a href="/logout">로그아웃</a>
+            {% else %}
+                <a href="/login">로그인</a> /
+                <a href="/register">회원가입</a>
+            {% endif %}
+        </ul>
+    </nav>
+
+    <h1 class="facility-header">김제 스마트팜 혁신밸리 주요 시설</h1>
+
+    <section class="facility-section">
+        <a name="youth"></a>
+        <div class="facility-image-container">
+            <img src="/static/images/facility_youth.jpg" alt="청년 보육 시설 이미지" class="facility-image">
+        </div>
+        <div class="facility-detail">
+            <h2>1. 청년창업 실습농장 (Youth Training Facility)</h2>
+            <p>시설원예의 입문 과정 교육 및 실습을 위한 공간입니다. 실습 위주의 교육형 스마트팜과 경영형 스마트팜으로 구성됩니다. 에너지 절감을 위해 지열시스템을 주 난방원으로 사용하고 있습니다.</p>
+            <strong>주요 교육 과정</strong>
+            <ul>
+                <li>입문 교육 (1~2개월): 스마트 팜 이론, 창업설계, 마케팅, 작물 재배 등 기초 교육을 제공합니다.</li>
+                <li>교육형 실습 교육 (6개월): 전문가 지도 하에 생산(육묘·관리·수확) 과정을 실습농장에서 현장 실습합니다.</li>
+                <li>경영형 실습 교육 (1년): 자기 책임 하에 영농 계획부터 생산, 판매 전 과정을 직접 수행하며 실전 경영 능력을 배양합니다.</li>
+            </ul>
+        </div>
+    </section>
+
+    <section class="facility-section">
+        <a name="rental"></a>
+        <div class="facility-image-container">
+            <img src="/static/images/facility_rental.jpg" alt="임대형 스마트팜 이미지" class="facility-image">
+        </div>
+        <div class="facility-detail">
+            <h2>2. 임대형 스마트팜 (Rental Smart Farm)</h2>
+            <p>20개월의 전문 보육 과정을 수료한 예비 청년 농업인들에게 시행착오를 최소화하고, 재배 경험과 경영 노하우를 쌓을 기회를 제공하여 성공적인 창업을 지원합니다.</p>
+            <strong>운영 및 특징</strong>
+            <ul>
+                <li>임대 기간: 3년 순환 주기로 운영됩니다.</li>
+                <li>모집 대상: 창업 보육 수료자를 우선으로 선발하며, 1구획당 3인 1팀 기준으로 선발합니다.</li>
+                <li>구성: 복합용 임대형 단지 및 과채용 비닐온실로 구성되어 재배 작물(자율 선택)에 맞는 환경을 제공합니다.</li>
+            </ul>
+        </div>
+    </section>
+
+    <section class="facility-section">
+        <a name="demo"></a>
+        <div class="facility-image-container">
+            <img src="/static/images/facility_demo.jpg" alt="실증단지 이미지" class="facility-image">
+        </div>
+        <div class="facility-detail">
+            <h2>3. 실증단지 (Demonstration Complex)</h2>
+            <p>스마트팜 기술 혁신 창출을 위한 핵심 공간으로, ICT 기자재, 신품목, 온실용 스마트 기계 등의 실증 및 검증이 이루어집니다. 기업 및 연구기관과의 연계를 통해 산업 활성화를 도모합니다.</p>
+            <strong>주요 실증 항목</strong>
+            <ul>
+                <li>ICT 기자재 및 복합환경제어: 센서 및 복합환경제어기 국산화, 병해충 예보 및 클라우드 기반 생육 관리 프로그램 개발.</li>
+                <li>신품목 개발: 한국 기후에 맞는 최적 생육 모델 개발, 신소득 특용 및 기능성 작물의 유효성분 함량 증대 실증.</li>
+                <li>기술 연계: 전시 및 체험 시설을 운영하며, 스타트업 지원을 통해 기술 혁신을 창출합니다.</li>
+            </ul>
+        </div>
+    </section>
+
+    <section class="facility-section">
+        <a name="support"></a>
+        <div class="facility-image-container">
+            <img src="/static/images/facility_support.jpg" alt="혁신밸리 지원센터 이미지" class="facility-image">
+        </div>
+        <div class="facility-detail">
+            <h2>4. 혁신밸리 지원센터 (Support Center)</h2>
+            <p>혁신밸리의 운영 및 입주자를 지원하는 중심 시설입니다. 빅데이터센터를 중심으로 창업 및 입주자 지원, 데이터 분석, 그리고 전시·체험 공간을 제공합니다.</p>
+            <strong>주요 시설 및 기능</strong>
+            <ul>
+                <li>주요 시설: 빅데이터센터, 전산실, 다목적실, 공용제작실, 사무실, 회의실, 기업체 사무실 등.</li>
+                <li>주요 기능: 시설 입주자 지원, 데이터 분석 및 공유, 기술 관련 전시 및 체험 공간 운영.</li>
+            </ul>
+        </div>
+    </section>
+
+    <div class="tooltip" id="tooltip"></div>
+
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>글쓰기</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f9f9f9;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+
+        form {
+            max-width: 700px;
+            margin: auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px #ccc;
+        }
+
+        label {
+            display: block;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        textarea {
+            height: 200px;
+            resize: vertical;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #1a242f;
+        }
+
+        .user-info {
+            text-align: right;
+            margin-bottom: 20px;
+            color: #444;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>글쓰기</h1>
+
+    <div class="user-info">
+        작성자: <strong>{{ user.username }}</strong> ({{ user.role }})
+    </div>
+
+    <form method="post" action="/write">
+        <label for="title">제목</label>
+        <input type="text" name="title" id="title" required>
+
+        <label for="content">내용</label>
+        <textarea name="content" id="content" required></textarea>
+
+        <button type="submit">등록</button>
+    </form>
+
+</body>
+</html>

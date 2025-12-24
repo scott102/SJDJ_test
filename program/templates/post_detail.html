@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ post.title }} - 게시글 보기</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f9f9f9;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px #ccc;
+        }
+
+        h1 {
+            color: #2c3e50;
+        }
+
+        .meta {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .content {
+            margin-top: 20px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        .back-btn {
+            margin-top: 30px;
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #2c3e50;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+
+        .back-btn:hover {
+            background-color: #1a242f;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>{{ post.title }}</h1>
+
+        <div class="meta">
+             작성자: <strong>{{ post.username }}</strong> ({{ post.role }})<br>
+             작성일: {{ post.created_at.strftime("%Y-%m-%d %H:%M") }}
+        </div>
+
+        <div class="content">
+            {{ post.content }}
+        </div>
+        {% if user and user.username == post.username %}
+        <a href="/delete/post/{{ post.id }}" class="back-btn" style="background-color:red;">게시글 삭제</a>
+        {% endif %}
+
+        <hr>
+
+        <div class="comment-section">
+            <h2>댓글</h2>
+
+            <!-- 댓글 리스트 -->
+<!--            {% if comments %}-->
+<!--                {% for comment in comments %}-->
+<!--                    <div class="comment">-->
+<!--                        <div class="comment-meta">-->
+<!--                            {{ comment.username }} ({{ comment.role }}) • {{ comment.created_at.strftime("%Y-%m-%d %H:%M") }}-->
+<!--                        </div>-->
+<!--                        <div class="comment-content">-->
+<!--                            {{ comment.content }}-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                {% endfor %}-->
+<!--            {% else %}-->
+<!--                <p>아직 댓글이 없습니다.</p>-->
+<!--            {% endif %}-->
+
+            <!-- 댓글 입력 폼 -->
+            {% if user %}
+            <form action="/comment/{{ post.id }}" method="post" class="comment-form">
+                <textarea name="content" placeholder="댓글을 입력하세요..." required></textarea>
+                <button type="submit">댓글 작성</button>
+            </form>
+
+            {% else %}
+            <p><a href="/login">로그인</a> 후 댓글을 작성할 수 있습니다.</p>
+            {% endif %}
+
+            {% for comment in comments %}
+            <div class="comment">
+                <div class="comment-meta">
+                    {{ comment.username }} ({{ comment.role }}) • {{ comment.created_at.strftime("%Y-%m-%d %H:%M") }}
+                    {% if user and user.username == comment.username %}
+                        <a href="/delete/comment/{{ post.id }}/{{ loop.index0 }}" style="color:red; margin-left:10px;">삭제</a>
+                    {% endif %}
+                </div>
+                <div class="comment-content">
+                   {{ comment.content }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <a href="/sns" class="back-btn">← 목록으로 돌아가기</a>
+    </div>
+
+</body>
+</html>

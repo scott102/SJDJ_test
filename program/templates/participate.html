@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>작물 생육 진단</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #008000;
+            border-bottom: 2px solid #b4cd13;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+        select, input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .submit-btn {
+            background-color: #008000;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        .submit-btn:hover {
+            background-color: #b4cd13;
+        }
+        .result-box {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 8px;
+            /* 🚨 result_color 변수를 사용하여 배경색 및 경계선 색상 설정 */
+            background-color: {% if result_color == 'green' %}#e6ffe6{% elif result_color == 'red' %}#ffe6e6{% else %}#f0f0f0{% endif %};
+            border-left: 5px solid {% if result_color == 'green' %}#008000{% elif result_color == 'red' %}#ff0000{% else %}#ccc{% endif %};
+        }
+        .result-box strong {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        .temp-type-group {
+            margin-top: 10px;
+            display: flex;
+            gap: 15px;
+        }
+        .temp-type-group label {
+            font-weight: normal;
+        }
+
+    </style>
+    <!-- 상단바 디자인을 위한 style.css 로드 -->
+    <link rel="stylesheet" href="/static/style.css">
+    <script>
+        function toggleTempType() {
+            const crop = document.getElementById('crop').value;
+            const item = document.getElementById('item').value;
+            const tempDiv = document.getElementById('temp-type-selection');
+
+            // 토마토나 딸기 선택 & 항목이 '온도'일 때만 주간/야간 선택창 표시
+            if ((crop === '토마토' || crop === '딸기') && item === '온도') {
+                tempDiv.style.display = 'block';
+            } else {
+                tempDiv.style.display = 'none';
+                // 다른 항목을 선택하면 라디오 버튼 체크 해제
+                document.querySelectorAll('input[name="temp_type"]').forEach(radio => radio.checked = false);
+            }
+        }
+
+        // 초기 로딩 시 및 작물/항목 변경 시 함수 호출
+        document.addEventListener('DOMContentLoaded', () => {
+            toggleTempType();
+            document.getElementById('crop').addEventListener('change', toggleTempType);
+            document.getElementById('item').addEventListener('change', toggleTempType);
+        });
+    </script>
+</head>
+<body>
+    <nav class="top-bar">
+        <div class="navbar_name">
+            <a href="/">S.J.D.J</a>
+        </div>
+        <!-- ... (네비게이션 목록 유지) ... -->
+        <ul class="navbar_list">
+            <li><a href="/about">실증단지 소개</a></li>
+            <li><a href="/datas">온실 3D 모델링</a></li>
+            <li><a href="/participate">실시간 데이터</a></li>
+            <li><a href="/sns">의견 게시판</a></li>
+            <li><a href="/aichat">AI 챗봇</a></li>
+        </ul>
+
+        <ul class="user-info">
+            {% if user %}
+                {{ user.username }} ({{ user.role }}) 님 로그인됨 |
+                <a href="/logout">로그아웃</a>
+            {% else %}
+                <a href="/login">로그인</a> /
+                <a href="/register">회원가입</a>
+            {% endif %}
+        </ul>
+    </nav>
+
+    <div class="container">
+        <h1>🌱 작물 환경 최적화 진단 시스템</h1>
+
+        <!-- 🚨 수정 1: form action을 올바른 POST 라우터 경로로 변경 -->
+        <form method="POST" action="/participate">
+
+            <label for="crop">1. 작물 선택</label>
+            <select id="crop" name="crop" onchange="toggleTempType()" required>
+                {% for c in crops %}
+                    <!-- 🚨 수정 2: Jinja2 변수명을 selected_crop으로 통일 -->
+                    <option value="{{ c }}" {% if c == selected_crop %}selected{% endif %}>{{ c }}</option>
+                {% endfor %}
+            </select>
+
+            <label for="item">2. 진단 항목</label>
+            <select id="item" name="item" onchange="toggleTempType()" required>
+                {% for i in items %}
+                    <!-- 🚨 수정 2: Jinja2 변수명을 selected_item으로 통일 -->
+                    <option value="{{ i }}" {% if i == selected_item %}selected{% endif %}>{{ i }}</option>
+                {% endfor %}
+            </select>
+
+            <!-- 주간/야간 온도 선택 필드 (조건부 표시) -->
+            <div class="form-group" id="temp-type-selection" style="display: none;">
+                <label>3. 시간대 선택:</label>
+                <div class="temp-type-group">
+                    <!-- 🚨 수정 2: Jinja2 변수명을 selected_temp_type으로 통일 -->
+                    <input type="radio" id="day" name="temp_type" value="day" {% if selected_temp_type == 'day' %}checked{% endif %}>
+                    <label for="day">주간 온도</label>
+                    <input type="radio" id="night" name="temp_type" value="night" {% if selected_temp_type == 'night' %}checked{% endif %}>
+                    <label for="night">야간 온도</label>
+                </div>
+            </div>
+
+            <!-- 🚨 수정 3: name 속성을 user_value로 변경 -->
+            <label for="user_value">4. 현재 값 입력</label>
+            <input type="text" id="user_value" name="user_value" placeholder="측정된 값을 입력하세요 (숫자만)" value="{{ selected_value or '' }}" required>
+
+            <button type="submit">🔍 상태 점검 및 피드백 받기</button>
+        </form>
+
+        <!-- 🚨 수정 4: 결과 표시 영역 -->
+        {% if result %}
+        <div class="result-box">
+            <h3>진단 결과:</h3>
+            {{ result | safe }}
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>

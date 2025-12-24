@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>온실 단지</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            overflow: hidden;
+            background: #87ceeb;
+        }
+
+        .container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        #canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px 50px;
+            border-radius: 12px;
+            font-size: 20px;
+            font-weight: 600;
+            color: #374151;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .info-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            max-width: 300px;
+        }
+
+        .info-panel h2 {
+            font-size: 20px;
+            margin-bottom: 12px;
+            color: #1f2937;
+        }
+
+        .info-panel p {
+            font-size: 14px;
+            color: #6b7280;
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+
+        .back-button {
+            width: 100%;
+            padding: 14px 20px;
+            background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+        }
+
+        .back-button:hover {
+            background: linear-gradient(135deg, #6d28d9 0%, #4c1d95 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4);
+        }
+
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            pointer-events: none;
+            display: none;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <canvas id="canvas"></canvas>
+        <div id="loading" class="loading">모델 로딩 중...</div>
+
+        <div class="info-panel">
+            <h2>🏭 온실 단지</h2>
+            <p>마우스를 드래그하여 시점을 회전할 수 있습니다.</p>
+            <p>온실을 클릭하면 내부를 볼 수 있습니다.</p>
+
+            <a href="/" class="back-button">웹페이지로 돌아가기</a>
+        </div>
+        <div class="controls">
+            마우스 드래그: 회전 | 휠: 확대/축소
+        </div>
+
+        <div id="tooltip" class="tooltip"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        let scene, camera, renderer, controls;
+        let raycaster, mouse;
+        let greenhouseModels = [];
+        // 건물 이름 한글 변환 함수
+        // 건물 이름 한글 변환 함수
+        function getBuildingDisplayName(buildingName) {
+            const name = buildingName.toLowerCase();
+
+            // 온실 번호 추출 및 상세 정보 매핑
+            const greenhouseMatch = name.match(/greenhouse[_\s]*(\d+)/);
+            if (greenhouseMatch) {
+                const num = parseInt(greenhouseMatch[1]);
+                const greenhouseInfo = {
+                    1: '1번 온실 (연동비닐온실, EBB BED 30m×9EA)',
+                    2: '2번 온실 (유리온실, 벤치 31m×12EA)',
+                    3: '3번 온실 (유리온실, 벤치 31m×12EA)',
+                    4: '4번 온실 (유리(육묘장))',
+                    5: '5번 온실 (연동비닐온실, 행잉거터 31m×12EA)',
+                    6: '6번 온실 (유리온실, 벤치 31m×6EA)',
+                    7: '7번 온실 (유리온실, 벤치 31m×6EA)',
+                    8: '8번 온실 (유리온실, 행잉거터 31m×9EA)',
+                    9: '9번 온실 (유리온실, 행잉거터 31m×9EA)',
+                    10: '10번 온실 (유리온실, 행잉거터 31m×9EA)',
+                    11: '11번 온실 (연동비닐온실, 행잉거터 31m×15EA)',
+                    12: '12번 온실 (유리온실, 행잉거터 31m×24EA)',
+                    13: '13번 온실 (유리온실, 행잉거터 31m×24EA)',
+                    14: '14번 온실 (단동비닐온실, 고설베드 23m×5EA)',
+                    15: '15번 온실 (단동비닐온실, 고설베드 23m×5EA)',
+                    16: '16번 온실 (단동비닐온실, 토경)',
+                    17: '17번 온실 (단동비닐온실, 토경)',
+                    18: '18번 온실 (단동비닐온실, 토경)'
+                };
+
+                return greenhouseInfo[num] || `${num}번 온실`;
+            }
+
+            // 특정 건물 매핑
+            if (name.includes('equipment_storage_room') || name.includes('equipment')) {
+                return '장비실';
+            }
+            if (name.includes('liquid') || name.includes('양액')) {
+                return '양액실';
+            }
+            if (name.includes('koat')) {
+                return 'KOAT 건물';
+            }
+            if (name.includes('management') || name.includes('관리')) {
+                return '관리동';
+            }
+            if (name.includes('subsidiary') || name.includes('부대')) {
+                return '부대시설';
+            }
+            if (name.includes('노지') || name.includes('field')) {
+                return '노지 (토경, 1200m²)';
+            }
+
+            // 매핑되지 않은 경우 원래 이름 반환
+            return buildingName;
+        }
+
+
+        let hoveredObject = null;
+
+        function init() {
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87ceeb);
+            scene.fog = new THREE.Fog(0x87ceeb, 10, 50);
+
+            // Camera
+            const canvas = document.getElementById('canvas');
+            camera = new THREE.PerspectiveCamera(
+                60,
+                canvas.clientWidth / canvas.clientHeight,
+                0.1,
+                1000
+            );
+            camera.position.set(1, 0.8, 1);
+            camera.lookAt(0, 0, 0);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({
+                canvas: canvas,
+                antialias: true
+            });
+            renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(5, 10, 5);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            scene.add(directionalLight);
+
+            // Ground
+            const groundGeometry = new THREE.PlaneGeometry(50, 50);
+            const groundMaterial = new THREE.MeshStandardMaterial({
+                color: 0x7cb342,
+                roughness: 0.8
+            });
+            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            ground.position.y = -0.1;
+            ground.receiveShadow = true;
+            scene.add(ground);
+
+            // Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.minDistance = 2;
+            controls.maxDistance = 20;
+            controls.maxPolarAngle = Math.PI / 2;
+
+            // Raycaster for click detection
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+
+            // Load model
+            loadGreenhouseComplex();
+
+            // Event listeners
+            window.addEventListener('resize', onWindowResize);
+            canvas.addEventListener('click', onCanvasClick);
+            canvas.addEventListener('mousemove', onMouseMove);
+
+            // Animation
+            animate();
+        }
+
+        function loadGreenhouseComplex() {
+            const loader = new THREE.GLTFLoader();
+
+            loader.load(
+                '/static/wholeview.glb',
+                function(gltf) {
+                    console.log('GLB 파일 로드 성공!');
+                    const model = gltf.scene;
+                    model.scale.set(1, 1, 1);
+                    model.position.set(0, 0, 0);
+
+                    let meshCount = 0;
+                    let clickableCount = 0;
+
+                    // Process all meshes
+                    model.traverse(function(child) {
+                        if (child.isMesh) {
+                            meshCount++;
+                            console.log('Mesh 발견:', child.name);
+
+                            child.castShadow = true;
+                            child.receiveShadow = true;
+
+                            const name = child.name.toLowerCase();
+
+                            // Make specific buildings interactive
+                            if (name.includes('greenhouse') ||
+                                name.includes('equipment_storage_room') ||
+                                name.includes('장비실') ||
+                                name.includes('nursery') ||
+                                name.includes('육묘장') ||
+                                name.includes('양액실') ||
+                                name.includes('liquid') ||
+                                name.includes('koat') ||
+                                name.includes('관리동') ||
+                                name.includes('management') ||
+                                name.includes('부대시설') ||
+                                name.includes('subsidiary')) {
+
+                                clickableCount++;
+                                child.userData.isClickable = true;
+                                child.userData.buildingName = child.name;
+                                greenhouseModels.push(child);
+
+                                console.log('클릭 가능 건물 추가:', child.name);
+
+                                // Set material based on type
+                                if (name.includes('greenhouse')) {
+                                    // Greenhouse - 실제 청록색 지붕
+                                    child.material = new THREE.MeshStandardMaterial({
+                                        color: 0xb2dfdb,
+                                        transparent: true,
+                                        opacity: 0.65,
+                                        roughness: 0.2,
+                                        metalness: 0.3
+                                    });
+                                } else if (name.includes('nursery') || name.includes('육묘장')) {
+                                    // Nursery - 청록색 (온실과 유사)
+                                    child.material = new THREE.MeshStandardMaterial({
+                                        color: 0xb2dfdb,
+                                        transparent: true,
+                                        opacity: 0.65,
+                                        roughness: 0.2,
+                                        metalness: 0.3
+                                    });
+                                } else if (name.includes('equipment') || name.includes('장비실')) {
+                                    // Equipment room - 청록색과 베이지의 중간색 (연한 민트그레이)
+                                    child.material = new THREE.MeshStandardMaterial({
+                                        color: 0xd4e9e7,
+                                        transparent: true,
+                                        opacity: 0.8,
+                                        roughness: 0.4,
+                                        metalness: 0.2
+                                    });
+                                } else {
+                                    // Other buildings - 밝은 베이지/크림색
+                                    child.material = new THREE.MeshStandardMaterial({
+                                        color: 0xf5f5dc,
+                                        transparent: true,
+                                        opacity: 0.85,
+                                        roughness: 0.6,
+                                        metalness: 0.1
+                                    });
+                                }
+                            } else {
+                                // Non-clickable structures
+                                child.material = new THREE.MeshStandardMaterial({
+                                    color: 0x8d6e63,
+                                    roughness: 0.7
+                                });
+                            }
+                        }
+                    });
+
+                    console.log('총 Mesh 수:', meshCount);
+                    console.log('클릭 가능한 건물 수:', clickableCount);
+
+                    scene.add(model);
+                    document.getElementById('loading').classList.add('hidden');
+                    console.log('온실 단지 로딩 완료');
+                },
+                function(xhr) {
+                    const percent = (xhr.loaded / xhr.total * 100).toFixed(0);
+                    console.log(percent + '% loaded');
+                },
+                function(error) {
+                    console.error('모델 로딩 실패:', error);
+                    document.getElementById('loading').textContent =
+                        '모델 로딩 실패. whole view.glb 파일을 확인하세요.';
+                }
+            );
+        }
+
+        function onMouseMove(event) {
+            const canvas = document.getElementById('canvas');
+            const rect = canvas.getBoundingClientRect();
+
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(greenhouseModels, false);
+
+            const tooltip = document.getElementById('tooltip');
+
+            if (intersects.length > 0) {
+                const object = intersects[0].object;
+
+                if (hoveredObject !== object) {
+                    // Reset previous
+                    if (hoveredObject) {
+                        hoveredObject.material.opacity = 0.6;
+                        hoveredObject.material.emissive.setHex(0x000000);
+                    }
+
+                    // Highlight new
+                    hoveredObject = object;
+                    object.material.opacity = 0.8;
+                    object.material.emissive.setHex(0x4caf50);
+
+                    // Show tooltip
+                    tooltip.textContent = `${getBuildingDisplayName(object.userData.buildingName)}`;
+                    tooltip.style.display = 'block';
+                }
+
+                tooltip.style.left = event.clientX + 10 + 'px';
+                tooltip.style.top = event.clientY + 10 + 'px';
+                canvas.style.cursor = 'pointer';
+
+            } else {
+                if (hoveredObject) {
+                    hoveredObject.material.opacity = 0.6;
+                    hoveredObject.material.emissive.setHex(0x000000);
+                    hoveredObject = null;
+                }
+                tooltip.style.display = 'none';
+                canvas.style.cursor = 'default';
+            }
+        }
+
+        function onCanvasClick(event) {
+            const canvas = document.getElementById('canvas');
+            const rect = canvas.getBoundingClientRect();
+
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(greenhouseModels, false);
+
+            if (intersects.length > 0) {
+                const object = intersects[0].object;
+                console.log('클릭된 건물:', object.userData.buildingName);
+
+                const name = object.userData.buildingName.toLowerCase();
+
+                // Navigate based on building type
+                if (name.includes('equipment_storage_room') || name.includes('장비실')) {
+                    // Equipment storage room
+                    window.location.href = '/equipment_viewer';
+                } else if (name.includes('양액실') || name.includes('liquid')) {
+                    // Nutrient solution room
+<!--                    alert('양액실 페이지 준비 중입니다.');-->
+                    // window.location.href = 'nutrient_room.html';
+                } else if (name.includes('koat')) {
+                    // KOAT building
+<!--                    alert('KOAT 건물 페이지 준비 중입니다.');-->
+                    // window.location.href = 'koat.html';
+                } else if (name.includes('관리동') || name.includes('management')) {
+                    // Management building
+<!--                    alert('관리동 페이지 준비 중입니다.');-->
+                    // window.location.href = 'management.html';
+                } else if (name.includes('부대시설') || name.includes('subsidiary')) {
+                    // Auxiliary facilities
+<!--                    alert('부대시설 페이지 준비 중입니다.');-->
+                    // window.location.href = 'auxiliary_facility.html';
+                } else if (name.includes('nursery') || name.includes('육묘장')) {
+                    // Nursery
+<!--                    alert('육묘장 페이지 준비 중입니다.');-->
+                    // window.location.href = 'nursery.html';
+                } else if (name === 'greenhouse_1') {
+                    // Greenhouse
+                    window.location.href = '/data_visualization1';
+                } else if (name.includes('greenhouse_2')) {
+                    // Greenhouse
+                    window.location.href = '/data_visualization2';
+                } else if (name.includes('greenhouse_3')) {
+                    // Greenhouse
+                    window.location.href = '/data_visualization2';
+                } else if (name.includes('greenhouse_5')) {
+                    // Greenhouse
+                    window.location.href = '/data_visualization5';
+                } else if (name.includes('greenhouse_6')) {
+                    // Greenhouse
+                    window.location.href = '/data_visualization6';
+                } else if (name.includes('greenhouse_8')) {
+                    // Greenhouse
+                    window.location.href = '/data_visualization8';
+                } else if (name === ('greenhouse_11')) {
+                    // Greenhouse
+                    window.location.href = '/data_visualization11';
+                } else if (name === ('greenhouse_12')) {
+                    // Greenhouse
+                    window.location.href = '/data_visualization12';
+                } else if (name === ('greenhouse_13')) {
+                    // Greenhouse
+                    window.location.href = '/data_visualization12';
+                } else if (name === ('greenhouse_14')) {
+                    // Greenhouse
+                    window.location.href = '/data_visualization14';
+                } else if (name === ('greenhouse_15')) {
+                    // Greenhouse
+                    window.location.href = '/data_visualization14';
+                } else if (name === ('greenhouse_16')) {
+                    // Greenhouse
+                    window.location.href = '/data_visualization16';
+                } else if (name === ('greenhouse_17')) {
+                    // Greenhouse
+                    window.location.href = '/data_visualization16';
+                } else if (name === ('greenhouse_18')) {
+                    // Greenhouse
+                    window.location.href = '/data_visualization16';
+                } else {
+                    console.log('알 수 없는 건물:', name);
+                }
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            const canvas = document.getElementById('canvas');
+            camera.aspect = canvas.clientWidth / canvas.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+        }
+
+        window.addEventListener('load', init);
+    </script>
+
+</body>
+</html>

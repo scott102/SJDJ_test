@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>실증단지 소개</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/about_style.css">
+</head>
+<body>
+    <nav class="top-bar">
+        <div class="navbar_name">
+            <a href="/">S.J.D.J</a>
+        </div>
+
+        <ul class="navbar_list">
+            <li><a href="/about">실증단지 소개</a></li>
+            <li><a href="/datas">온실 3D 모델링</a></li>
+            <li><a href="/participate">실시간 데이터</a></li>
+            <li><a href="/sns">의견 게시판</a></li>
+            <li><a href="/aichat">AI 챗봇</a></li>
+        </ul>
+
+        <ul class="user-info">
+            {% if user %}
+                {{ user.username }} ({{ user.role }}) 님 로그인됨 |
+                <a href="/logout">로그아웃</a>
+            {% else %}
+                <a href="/login">로그인</a> /
+                <a href="/register">회원가입</a>
+            {% endif %}
+        </ul>
+    </nav>
+
+    <h1 class="section-header">실증단지 안내 지도</h1>
+
+    <div class="map-container" style="max-width: 1000px; margin: 0 auto;">
+        <img src="/static/images/sjdj_map.jpg" alt="캠퍼스 지도" class="map-image">
+
+        <a href="/imdae_sf#rental"><div class="building" style="left: 22.71%; top: 22.36%;" data-name="임대형 스마트팜" data-desc="4.5ha"></div></a>
+        <a href="/imdae_sf#youth"><div class="building" style="left: 9.71%; top: 57.69%;" data-name="청년창업 실습농장" data-desc="2.3ha"></div></a>
+        <a href="/imdae_sf#demo"><div class="building" style="left: 50%; top: 47.2%;" data-name="혁신밸리 실증온실" data-desc="1.6ha"></div></a>
+        <a href="/imdae_sf#support"><div class="building" style="left: 65%; top: 76.3%;" data-name="혁신밸리 지원센터" data-desc="본관"></div></a>
+    </div>
+
+    <h1 class="section-header">실증단지 기대 효과</h1>
+
+    <div class="effect-grid">
+        <div class="effect-card">
+            <span class="effect-number">01</span>
+            <h2>기술 고도화</h2>
+            <p>ICT 기자재 및 신기술의 실제 환경 검증을 통한 스마트팜 기술의 완성도 및 안정성 확보</p>
+        </div>
+        <div class="effect-card">
+            <span class="effect-number">02</span>
+            <h2>인재 육성</h2>
+            <p>청년 창업농에게 실습 및 교육 기회를 제공하여 미래 농업을 이끌어갈 전문 인력 양성</p>
+        </div>
+        <div class="effect-card">
+            <span class="effect-number">03</span>
+            <h2>산업 활성화</h2>
+            <p>기업 및 연구기관 간의 유기적인 연계를 통해 기술 사업화 및 시장 규모 확대 기여</p>
+        </div>
+        <div class="effect-card">
+            <span class="effect-number">04</span>
+            <h2>농가 소득 증대</h2>
+            <p>최적화된 재배 모델 및 데이터 기반 영농을 통해 생산성 향상과 농업 소득 극대화</p>
+        </div>
+    </div>
+
+    <h1 class="section-header">실증 서비스 분야별 구분</h1>
+
+    <div class="service-list" style="max-width: 1000px; margin: 0 auto;">
+        <ul>
+            <li>
+                <strong>ICT 기자재, 신품목, 온실용 스마트 기계 등의 실증 및 검증</strong>
+                <p>개발된 스마트팜 관련 하드웨어 및 소프트웨어를 실제 온실 환경에 적용하여 성능, 호환성, 내구성 등을 평가합니다.</p>
+            </li>
+            <li>
+                <strong>전시, 체험, 스타트업 지원을 통한 기술혁신 창출</strong>
+                <p>혁신 기술 전시 공간과 체험 시설 운영, 아이디어를 가진 청년 및 스타트업에 실증 공간을 제공하여 새로운 비즈니스 모델 발굴을 지원합니다.</p>
+            </li>
+            <li>
+                <strong>기업/연구기관 등 연계 및 활성화 방안 마련</strong>
+                <p>기술 수요자와 공급자 간의 네트워크를 구축하고, R&D 결과의 기술 이전을 촉진하여 스마트팜 산업의 성장을 견인합니다.</p>
+            </li>
+        </ul>
+    </div>
+
+
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+      const tooltip = document.getElementById("tooltip");
+      const buildings = document.querySelectorAll(".building");
+
+      buildings.forEach(b => {
+        b.addEventListener("mouseenter", e => {
+          tooltip.innerHTML = `<strong>${b.dataset.name}</strong><br>${b.dataset.desc}`;
+          tooltip.style.display = "block";
+        });
+
+        b.addEventListener("mousemove", e => {
+          tooltip.style.top = (e.pageY + 10) + "px";
+          tooltip.style.left = (e.pageX + 10) + "px";
+        });
+
+        b.addEventListener("mouseleave", () => {
+          tooltip.style.display = "none";
+        });
+      });
+    </script>
+
+
+</body>
+</html>

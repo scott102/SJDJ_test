@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/html">
+<head>
+    <title>홈 - 실증단지</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/news_style.css">
+    <link rel="stylesheet" href="/static/profile.css">
+    <!-- main_parallax.css는 애니메이션 효과가 있으므로 그대로 유지 -->
+    <link rel="stylesheet" href="/static/main_parallax.css">
+
+    <style>
+        /* 🚨 수정: 전체 콘텐츠 영역의 너비를 1200px로 제한하고 중앙 정렬 */
+        :root {
+            /* 메인 콘텐츠의 최대 너비를 1200px로 고정하여 깔끔한 여백 확보 */
+            --main-content-max-width: 1200px;
+            /* --chat-box-width: 600px; 변수는 제거 */
+        }
+
+        /* 🚨 중요: main-section, chatbox-section에 고정된 max-width와 margin: auto 적용 */
+        .chatbox-section, .main-section, .ipju-section { /* 🚨 ipju-section 추가 */
+            max-width: var(--main-content-max-width); /* 1200px로 제한 */
+            width: 100%;
+            margin-left: auto; /* 중앙 정렬 */
+            margin-right: auto;
+
+            /* 좌우에 20px의 내부 패딩을 추가하여 내용이 끝에 붙지 않도록 합니다. */
+            padding: 0 20px;
+            box-sizing: border-box;
+        }
+
+        .chatbox-section {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* 🚨 ipju 섹션 스타일 (카드 디자인 적용) */
+        .ipju-section {
+            margin-top: 40px;
+            margin-bottom: 40px;
+            padding: 25px 30px;
+            background: #eaf6e5; /* 연한 녹색 배경 */
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            text-align: center;
+        }
+        .ipju-section h2 {
+            color: #008000;
+            margin-bottom: 15px;
+            border-bottom: none;
+        }
+        .ipju-section a.ipju-link {
+            display: inline-block;
+            padding: 10px 25px;
+            margin-top: 15px;
+            background-color: #008000;
+            color: white;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+        .ipju-section a.ipju-link:hover {
+            background-color: #b4cd13;
+        }
+
+
+        .chatbox {
+            /* 🚨 수정: 질문 입력창 너비를 부모 컨테이너(1200px)와 동일하게 100%로 확장 */
+            width: 100%;
+            max-width: var(--main-content-max-width); /* 1200px에 맞춥니다. */
+        }
+
+        #chatResponse {
+            width: 100%;
+
+            /* 높이 증가 및 가독성 확보 */
+            min-height: 150px;
+            max-height: 400px;
+
+            /* 디자인 */
+            background-color: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+
+            padding: 20px;
+            margin-top: 20px;
+            overflow-y: auto;
+
+            /* 🚨 중요 수정: 초기에는 숨김 상태로 설정 */
+            display: none;
+
+            /* main_parallax.css의 애니메이션 속성을 강제로 덮어씁니다. */
+            opacity: 1 !important;
+            transform: none !important;
+            transition: none !important;
+        }
+
+        /* 챗봇 답변 텍스트 가독성을 위한 스타일 */
+        #chatResponse p {
+            font-size: 1.1em;
+        }
+        .user-query {
+            font-weight: bold;
+            color: #007acc;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #b4cd13;
+            padding-bottom: 5px;
+        }
+        .bot-response {
+            margin-top: 10px;
+            font-size: 1.1em;
+            white-space: pre-wrap;
+        }
+        .loading-indicator {
+            color: #888;
+            font-style: italic;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="top-bar">
+        <div class="navbar_name">
+            <a href="/">S.J.D.J</a>
+        </div>
+
+        <ul class="navbar_list">
+            <li><a href="/about">실증단지 소개</a></li>
+            <li><a href="/datas">온실 3D 모델링</a></li>
+            <li><a href="/participate">실시간 데이터</a></li>
+            <li><a href="/sns">의견 게시판</a></li>
+            <li><a href="/aichat">AI 챗봇</a></li>
+        </ul>
+
+        <ul class="user-info">
+            {% if user %}
+                {{ user.username }} ({{ user.role }}) 님 로그인됨 |
+                <a href="/logout">로그아웃</a>
+            {% else %}
+                <a href="/login">로그인</a> /
+                <a href="/register">회원가입</a>
+            {% endif %}
+        </ul>
+    </nav>
+
+    <section class="hero-image-section">
+        <h1>김제 스마트팜 혁신밸리 실증단지</h1>
+        <p>미래 농업의 시작, 김제에서 확인하세요</p>
+    </section>
+
+    <!-- 챗봇 섹션 -->
+    <section class="chatbox-section">
+      <div class="chatbox">
+        <h2>챗봇 서비스</h2>
+        <input id="chatInput" type="text" placeholder="무엇을 도와드릴까요? (예: 웹사이트 설명 요청)" />
+        <button id="chatSend">검색</button>
+      </div>
+
+      <!-- 챗봇 응답이 표시될 영역 (초기 display: none) -->
+      <div id="chatResponse" class="chat-response">
+          <p>궁금한 점을 입력하고 검색 버튼을 눌러보세요.</p>
+      </div>
+    </section>
+
+    <!-- 🚨 추가: 입주 안내 컨테이너 -->
+    <section class="ipju-section">
+        <h2>임대형 스마트팜 입주 안내</h2>
+        <p>청년 창업농을 위한 전문 보육 과정과 임대형 스마트팜 입주 정보를 확인하세요. 미래를 함께할 인재를 기다립니다.</p>
+        <a href="https://innovalley.smartfarmkorea.net/gimje/Demonstration/prv_application" class="ipju-link">입주 자격 및 신청 바로가기</a>
+    </section>
+    <!-- 🚨 끝: 입주 안내 컨테이너 -->
+
+    <!-- 뉴스/지도 섹션 -->
+    <section class="main-section">
+        <div class="card news-card">
+            <div class="card-header">
+                <h2>김제 혁신밸리 공지/뉴스</h2>
+                <p class="subtext">김제 스마트팜 혁신밸리 공지사항</p>
+            </div>
+
+            <div class="news-container">
+                {% for news in gimje_news[:3] %}
+                <div class="news-item">
+                    <div class="news-header">
+                        <h3><a href="{{ news.link }}" target="_blank">{{ news.title }}</a></h3>
+                        <p class="date">{{ news.date }}</p>
+                    </div>
+                </div>
+                {% else %}
+                <div class="news-item">
+                    <p>현재 불러올 수 있는 외부 공지사항이 없습니다.</p>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="card-footer">
+                <a href="/news" class="btn-more">더보기 →</a>
+            </div>
+        </div>
+
+        <div class="card map-card">
+            <div class="card-header">
+                <h2>실증단지 위치 안내</h2>
+                <p class="subtext">스마트팜 실증단지</p>
+            </div>
+
+            <div class="map-frame">
+                <iframe
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3232.685605925304!2d126.94999059999999!3d35.88122069999999!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x357047a26e92e5e1%3A0x2e5eb9fd4e287dc3!2z7KCE652867aB64-EIOq5gOygnCDsiqTrp4jtirjtjJwg7ZiB7Iug67C466as!5e0!3m2!1sko!2skr!4v1763452981065!5m2!1sko!2skr"
+                    allowfullscreen=""
+                    loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade">\
+                </iframe>
+            </div>
+        </div>
+    </section>
+
+ <script>
+  document.getElementById("chatSend").addEventListener("click", sendMessage);
+  document.getElementById("chatInput").addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+        e.preventDefault();
+        sendMessage();
+    }
+  });
+
+  function sendMessage() {
+    const inputElement = document.getElementById("chatInput");
+    const responseDiv = document.getElementById("chatResponse");
+    const msg = inputElement.value.trim();
+
+    if (!msg) return;
+
+    // 🚨 수정 1: 컨테이너 보이게 설정 (아래 콘텐츠를 밀어냅니다.)
+    responseDiv.style.display = 'block';
+
+    // 🚨 수정 2: 이전 내용을 모두 지우고 새 내용으로 시작
+    responseDiv.innerHTML = '';
+
+    // 🚨 새 질문 컨테이너를 생성하여 답변을 담습니다.
+    const newQueryContainer = document.createElement('div');
+    newQueryContainer.className = 'query-container';
+
+    // 1. 사용자 질문 표시
+    let content = `<p class="user-query">사용자 질문: ${msg}</p>`;
+
+    // 2. 로딩 메시지 표시
+    content += `<p id="botLoading" class="loading-indicator">답변을 생성 중입니다...</p>`;
+
+    newQueryContainer.innerHTML = content;
+    responseDiv.prepend(newQueryContainer); // 가장 위에 새 응답 영역 추가
+
+    // 스크롤을 맨 위로 이동
+    responseDiv.scrollTop = 0;
+
+    inputElement.value = ''; // 입력창 비우기
+
+
+    // FastAPI API로 메시지 전송
+    fetch("/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: msg }),
+    })
+    .then(response => {
+      if (!response.ok) {
+        // 서버 측에서 500 에러 등이 발생한 경우, 응답 본문을 읽어 오류 메시지 확인
+        return response.json().then(errorData => {
+             throw new Error(errorData.response || `HTTP error! status: ${response.status}`);
+        }).catch(() => {
+             // JSON 파싱 실패 시, 일반 HTTP 에러 메시지 반환
+             throw new Error(`HTTP error! status: ${response.status}`);
+        });
+      }
+      return response.json();
+    })
+    .then(data => {
+      const loadingIndicator = newQueryContainer.querySelector('#botLoading');
+      const botResponseText = data.response;
+
+      // 3. 로딩 메시지 제거
+      if (loadingIndicator) {
+          loadingIndicator.remove();
+      }
+
+      // 4. URL 자동 감지 및 링크 변환 로직
+      const urlRegex = /(https?:\/\/[^\s]+)/g;
+
+      const botResponseHtml = botResponseText.replace(urlRegex, function(url) {
+          return '<a href="' + url + '" target="_blank" style="color:#007bff; text-decoration:underline; font-weight:bold;">' + url + '</a>';
+      });
+
+      // 5. 챗봇 응답 표시
+      newQueryContainer.innerHTML += `<div class="bot-response">${botResponseHtml}</div>`;
+
+      // 스크롤 최신화 (새 답변이 위에 추가되므로 맨 위로 스크롤)
+      responseDiv.scrollTop = 0;
+    })
+    .catch(error => {
+      const loadingIndicator = newQueryContainer.querySelector('#botLoading');
+      if (loadingIndicator) {
+          loadingIndicator.remove();
+      }
+      // 🚨 서버 측 에러 메시지 출력
+      console.error("Error:", error);
+      newQueryContainer.innerHTML += `<div class="bot-response" style="color:red;">오류 발생: 챗봇 서버 연결 실패 또는 초기화 문제. (${error.message})</div>`;
+    });
+  }
+ </script>
+
+</body>
+</html>

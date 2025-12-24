@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>로그인</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <h2>로그인</h2>
+    {% if error %}
+        <p style="color:red;">{{ error }}</p>
+    {% endif %}
+    <form method="post">
+        <label>이메일:</label><br>
+        <input type="email" name="email" required><br><br>
+
+        <label>비밀번호:</label><br>
+        <input type="password" name="password" required><br><br>
+
+        <button type="submit">로그인</button>
+    </form>
+
+    <div style="margin-top: 20px;">
+        <a href="/register">계정이 없으신가요? 회원가입</a>
+    </div>
+    <div style="margin-top: 30px;">
+        <a href="/" class="link-button">홈으로 돌아가기</a>
+    </div>
+</body>
+</html>

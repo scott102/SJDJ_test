@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>김제 스마트팜 혁신밸리 - 실시간 환경 데이터 시각화</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Malgun Gothic', sans-serif;
+            overflow: hidden;
+            background: #f5f5f5;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .canvas-container {
+            flex: 1;
+            position: relative;
+        }
+
+        #canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px 50px;
+            border-radius: 12px;
+            font-size: 20px;
+            font-weight: 600;
+            color: #1f2937;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .header {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+        }
+
+        .header h1 {
+            font-size: 22px;
+            font-weight: bold;
+            color: #10b981;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        .info-panel {
+            width: 320px;
+            background: white;
+            box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .back-button {
+            width: 100%;
+            padding: 14px 20px;
+            background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+        }
+
+        .back-button:hover {
+            background: linear-gradient(135deg, #6d28d9 0%, #4c1d95 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4);
+        }
+
+        .panel-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sensor-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .sensor-card {
+            background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+            border: 2px solid #10b981;
+            border-radius: 10px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sensor-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: #10b981;
+        }
+
+        .sensor-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
+        }
+
+        .sensor-card.selected {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border-color: #047857;
+            color: white;
+        }
+
+        .sensor-card.selected .sensor-name,
+        .sensor-card.selected .sensor-location,
+        .sensor-card.selected .data-item {
+            color: white !important;
+        }
+
+        .sensor-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .sensor-name {
+            font-size: 15px;
+            font-weight: bold;
+            color: #1f2937;
+        }
+
+        .sensor-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #10b981;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .sensor-location {
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 12px;
+        }
+
+        .sensor-data {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .data-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: #374151;
+        }
+
+        .data-icon {
+            font-size: 16px;
+        }
+
+        .data-value {
+            font-weight: 600;
+            color: #10b981;
+        }
+
+        .info-box {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            border-left: 4px solid #3b82f6;
+            padding: 16px;
+            border-radius: 8px;
+        }
+
+        .info-box h3 {
+            font-size: 14px;
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 8px;
+        }
+
+        .info-box p {
+            font-size: 13px;
+            color: #1e40af;
+            line-height: 1.6;
+        }
+
+        .legend {
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .legend-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: #4b5563;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            pointer-events: none;
+            display: none;
+            z-index: 1000;
+            max-width: 250px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .tooltip.show {
+            display: block;
+        }
+
+        .tooltip-title {
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: #10b981;
+        }
+
+        .tooltip-data {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .tooltip-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* 센서 상태 표시 색상 */
+        .temp-optimal { background: #10b981; }
+        .temp-warning { background: #f59e0b; }
+        .temp-danger { background: #ef4444; }
+
+        .stats-summary {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-radius: 10px;
+            padding: 16px;
+            margin-top: 10px;
+        }
+
+        .stats-summary h3 {
+            font-size: 14px;
+            font-weight: bold;
+            color: #92400e;
+            margin-bottom: 12px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .stat-box {
+            background: white;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #78716c;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 16px;
+            font-weight: bold;
+            color: #92400e;
+        }
+
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255,255,255,0.95);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            z-index: 100;
+        }
+
+        #controls p {
+            color: #444;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        #controls p:last-child {
+            margin-bottom: 0;
+        }
+
+        #controls strong {
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="canvas-container">
+            <div class="header">
+                <h1>🌱 연동비닐온실, 행잉거터 31m×12EA</h1>
+                <p>실증단지 실시간 환경 데이터 모니터링</p>
+            </div>
+            <canvas id="canvas"></canvas>
+            <div id="loading" class="loading">온실 모델 로딩 중...</div>
+            <div id="controls">
+                <p><strong>마우스 좌클릭</strong>: 회전</p>
+                <p><strong>마우스 우클릭</strong>: 이동</p>
+                <p><strong>마우스 휠</strong>: 확대/축소</p>
+            </div>
+            <div id="tooltip" class="tooltip"></div>
+        </div>
+
+        <div class="info-panel">
+            <button class="back-button" onclick="window.location.href='/datas'">
+                ← 온실 단지로 돌아가기
+            </button>
+
+            <div>
+                <div class="panel-title">📊 센서 현황 (4개소)</div>
+                <div id="sensorList" class="sensor-list"></div>
+            </div>
+
+            <div class="stats-summary">
+                <h3>📈 현재 환경 데이터</h3>
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-label">온도</div>
+                        <div class="stat-value" id="avgTemp">--°C</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">습도</div>
+                        <div class="stat-value" id="avgHumidity">--%</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">CO₂</div>
+                        <div class="stat-value" id="avgCO2">--ppm</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">일사량</div>
+                        <div class="stat-value" id="avgLight">--lux</div>
+                    </div>
+                </div>
+            </div>
+
+<!--            <div class="legend">-->
+<!--                <div class="legend-title">센서 색상 안내</div>-->
+<!--                <div class="legend-item">-->
+<!--                    <div class="legend-color temp-optimal"></div>-->
+<!--                    <span>정상 범위 (최적)</span>-->
+<!--                </div>-->
+<!--                <div class="legend-item">-->
+<!--                    <div class="legend-color temp-warning"></div>-->
+<!--                    <span>주의 범위</span>-->
+<!--                </div>-->
+<!--                <div class="legend-item">-->
+<!--                    <div class="legend-color temp-danger"></div>-->
+<!--                    <span>위험 범위</span>-->
+<!--                </div>-->
+<!--            </div>-->
+
+            <div class="info-box">
+                <h3>💡 입주 시 혜택</h3>
+                <p>
+                    실증단지 입주 시 모든 센서 데이터를 실시간으로 제공받으실 수 있습니다.
+                    API를 통해 간편하게 연동하여 스마트팜 관리 시스템에 바로 적용 가능합니다.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- SheetJS 라이브러리 추가 -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script>
+        let scene, camera, renderer, controls;
+        let greenhouse;
+        let sensors = [];
+        let selectedSensor = null;
+        let raycaster, mouse;
+
+        // 센서 설정 (온실 중앙에 사각형 배치, 각 센서는 하나의 환경 데이터만 수집)
+        const sensorConfigs = [
+            { id: 1, name: '온도 센서', position: { x: -0.05, y: 0.15, z: -0.05 }, type: 'temp' },
+            { id: 2, name: '습도 센서', position: { x: 0.05, y: 0.15, z: -0.05 }, location: '중앙 우측 상단', type: 'humidity' },
+            { id: 3, name: 'CO₂ 센서', position: { x: -0.05, y: 0.15, z: 0.05 }, location: '중앙 좌측 하단', type: 'co2' },
+            { id: 4, name: '광량 센서', position: { x: 0.05, y: 0.15, z: 0.05 }, location: '중앙 우측 하단', type: 'light' }
+        ];
+
+        // 실제 센서 데이터 (엑셀에서 로드)
+        let REAL_SENSOR_DATA = [];
+        let currentDataIndex = 0;
+
+        // 엑셀 파일에서 데이터 로드
+        async function loadExcelData() {
+            try {
+                const response = await fetch('/static/data/토마토_행잉거터_비닐.xlsx');
+                if (!response.ok) {
+                    throw new Error('엑셀 파일을 찾을 수 없습니다.');
+                }
+
+                const arrayBuffer = await response.arrayBuffer();
+                const workbook = XLSX.read(arrayBuffer);
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+                // 데이터 변환
+                REAL_SENSOR_DATA = jsonData.map(row => ({
+                    datetime: row['수집일'] || row['date'] || '',
+                    temp: parseFloat(row['온도'] || row['temperature'] || 0),
+                    humidity: parseFloat(row['습도'] || row['humidity'] || 0),
+                    co2: parseFloat(row['CO2'] || row['co2'] || 0),
+                    light: parseFloat(row['일사량'] || row['light'] || 0)
+                }));
+
+                console.log(`✅ ${REAL_SENSOR_DATA.length}개의 데이터가 로드되었습니다.`);
+                return true;
+            } catch (error) {
+                console.error('엑셀 파일 로드 실패:', error);
+                alert('엑셀 파일(상추_고설베드_비닐.xlsx)을 찾을 수 없습니다.\n파일이 HTML 파일과 같은 폴더에 있는지 확인해주세요.\n샘플 데이터로 진행합니다.');
+
+                // 샘플 데이터 생성
+                REAL_SENSOR_DATA = [
+                    {"datetime": "2024-05-20 000000", "temp": 16.2, "humidity": 26.2, "co2": 442.0, "light": 0.0},
+                    {"datetime": "2024-10-10 170000", "temp": 13.9, "humidity": 24.6, "co2": 399.0, "light": 0.2}
+                ];
+                return false;
+            }
+        }
+
+
+
+        // 데이터 생성 함수 - 각 센서는 하나의 환경 데이터만 수집
+        function generateSensorData(sensorConfig) {
+            // 현재 데이터 포인트 가져오기
+            const dataPoint = REAL_SENSOR_DATA[currentDataIndex % REAL_SENSOR_DATA.length];
+
+            // 센서 타입에 따라 해당 데이터만 반환
+            switch(sensorConfig.type) {
+                case 'temp':
+                    return {
+                        temp: Math.round(dataPoint.temp * 10) / 10,
+                        humidity: null,
+                        co2: null,
+                        light: null
+                    };
+                case 'humidity':
+                    return {
+                        temp: null,
+                        humidity: Math.round(dataPoint.humidity * 10) / 10,
+                        co2: null,
+                        light: null
+                    };
+                case 'co2':
+                    return {
+                        temp: null,
+                        humidity: null,
+                        co2: Math.round(dataPoint.co2),
+                        light: null
+                    };
+                case 'light':
+                    return {
+                        temp: null,
+                        humidity: null,
+                        co2: null,
+                        light: Math.round(dataPoint.light)
+                    };
+                default:
+                    return {
+                        temp: null,
+                        humidity: null,
+                        co2: null,
+                        light: null
+                    };
+            }
+        }
+
+        // 온도에 따른 색상 결정
+        function getTempColor(temp) {
+            if (temp >= 22 && temp <= 26) return 0x10b981; // 정상 (초록)
+            if (temp >= 20 && temp <= 28) return 0xf59e0b; // 주의 (주황)
+            return 0xef4444; // 위험 (빨강)
+        }
+
+        async function init() {
+            // 엑셀 데이터 먼저 로드
+            await loadExcelData();
+
+            // Scene setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf5f5f5);
+
+            // Add grid
+            const gridHelper = new THREE.GridHelper(2, 20, 0xcccccc, 0xe0e0e0);
+            gridHelper.position.y = 0;
+            scene.add(gridHelper);
+
+            // Camera setup
+            const canvas = document.getElementById('canvas');
+            camera = new THREE.PerspectiveCamera(
+                50,
+                canvas.clientWidth / canvas.clientHeight,
+                0.1,
+                1000
+            );
+            camera.position.set(0.45, 0.4, 0.45);
+            camera.lookAt(0, 0.1, 0);
+
+            // Renderer setup
+            renderer = new THREE.WebGLRenderer({
+                canvas: canvas,
+                antialias: true
+            });
+            renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+            // OrbitControls setup
+            controls = new THREE.OrbitControls(camera, canvas);
+            controls.target.set(0, 0.15, 0);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.minDistance = 0.3;
+            controls.maxDistance = 1.5;
+            controls.maxPolarAngle = Math.PI / 2; // 지면 아래로 못 가게
+            controls.update();
+
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(5, 10, 5);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.camera.left = 3;
+            directionalLight.shadow.camera.right = 3;
+            directionalLight.shadow.camera.top = 3;
+            directionalLight.shadow.camera.bottom = 3;
+            scene.add(directionalLight);
+
+            // Raycaster for sensor selection
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+
+            // Event listeners
+            window.addEventListener('resize', onWindowResize);
+            canvas.addEventListener('mousemove', onMouseMove);
+            canvas.addEventListener('click', onMouseClick);
+
+            // Load models
+            loadModels();
+
+            // Start animation
+            animate();
+
+            // Update sensor data
+            setInterval(updateAllSensors, 2000);
+        }
+
+        function loadModels() {
+            const loader = new THREE.GLTFLoader();
+
+            // Load greenhouse
+            loader.load(
+                '/static/greenhouse_5.glb',
+                function(gltf) {
+                    greenhouse = gltf.scene;
+                    greenhouse.scale.set(1, 1, 1);
+                    greenhouse.position.set(0, 0, 0);
+
+                    // Apply materials
+                    greenhouse.traverse(function(child) {
+                        if (child.isMesh) {
+                            child.castShadow = true;
+                            child.receiveShadow = true;
+
+                            const name = child.name.toLowerCase();
+                            if (name.includes('film') || name.includes('cover')) {
+                                child.material = new THREE.MeshPhysicalMaterial({
+                                    color: 0xffffff,
+                                    transparent: true,
+                                    opacity: 0.3,
+                                    metalness: 0.1,
+                                    roughness: 0.1
+                                });
+                            } else if (name.includes('floor') || name.includes('base') || name.includes('bottom') || name.includes('pcube1')) {
+                                // 바닥 - 옅은 베이지색
+                                child.material = new THREE.MeshStandardMaterial({
+                                    color: 0xF7EAC1,
+                                    metalness: 0.1,
+                                    roughness: 0.7
+                                });
+                            } else if (name.includes('bed') || name.includes('soil') || name.includes('ground')) {
+                                // 재배 베드 - 옅은 하늘색
+                                child.material = new THREE.MeshStandardMaterial({
+                                    color: 0xADD8E6,
+                                    metalness: 0.1,
+                                    roughness: 0.8
+                                });
+                            } else if (name.includes('frame') || name.includes('structure')) {
+                                child.material = new THREE.MeshStandardMaterial({ color: 0xcccccc });
+                            } else {
+                                child.material = new THREE.MeshStandardMaterial({ color: 0xeeeeee });
+                            }
+                        }
+                    });
+
+                    scene.add(greenhouse);
+                    console.log('Greenhouse loaded');
+
+                    // Create sensors after greenhouse is loaded
+                    createSensors();
+
+                    document.getElementById('loading').classList.add('hidden');
+                },
+                function(xhr) {
+                    console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+                },
+                function(error) {
+                    console.error('Error loading greenhouse:', error);
+                    alert('온실 모델 로드 실패. greenhouse_1.glb 파일을 확인하세요.');
+                }
+            );
+        }
+
+        function createSensors() {
+            sensorConfigs.forEach(config => {
+                // Sensor sphere
+                const geometry = new THREE.SphereGeometry(0.015, 16, 16);
+                const material = new THREE.MeshStandardMaterial({
+                    color: 0x10b981,
+                    emissive: 0x10b981,
+                    emissiveIntensity: 0.8,
+                    metalness: 0.3,
+                    roughness: 0.4
+                });
+                const sensorMesh = new THREE.Mesh(geometry, material);
+                sensorMesh.position.set(config.position.x, config.position.y, config.position.z);
+                sensorMesh.userData = {
+                    sensorId: config.id,
+                    type: 'sensor'
+                };
+
+                // Glow effect
+                const glowGeometry = new THREE.SphereGeometry(0.025, 16, 16);
+                const glowMaterial = new THREE.MeshBasicMaterial({
+                    color: 0x10b981,
+                    transparent: true,
+                    opacity: 0.4
+                });
+                const glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
+                glowMesh.position.copy(sensorMesh.position);
+
+                // Connection line to ground
+                const lineGeometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(config.position.x, config.position.y, config.position.z),
+                    new THREE.Vector3(config.position.x, 0.02, config.position.z)
+                ]);
+                const lineMaterial = new THREE.LineBasicMaterial({
+                    color: 0x10b981,
+                    transparent: true,
+                    opacity: 0.5,
+                    linewidth: 2
+                });
+                const line = new THREE.Line(lineGeometry, lineMaterial);
+
+                scene.add(sensorMesh);
+                scene.add(glowMesh);
+                scene.add(line);
+
+                sensors.push({
+                    config: config,
+                    mesh: sensorMesh,
+                    glow: glowMesh,
+                    line: line,
+                    data: generateSensorData(config)
+                });
+            });
+
+            updateSensorList();
+            updateAverageStats();
+        }
+
+        function updateAllSensors() {
+            // 다음 데이터 포인트로 이동
+            currentDataIndex++;
+
+            sensors.forEach(sensor => {
+                sensor.data = generateSensorData(sensor.config);
+
+                // 센서 색상을 초록색으로 고정
+                const color = 0x10b981; // 초록색 고정
+                sensor.mesh.material.color.setHex(color);
+                sensor.mesh.material.emissive.setHex(color);
+                sensor.glow.material.color.setHex(color);
+                sensor.line.material.color.setHex(color);
+            });
+
+            updateSensorList();
+            updateAverageStats();
+        }
+
+        function updateSensorList() {
+            const listContainer = document.getElementById('sensorList');
+            let html = '';
+
+            sensors.forEach(sensor => {
+                const selected = selectedSensor && selectedSensor.config.id === sensor.config.id;
+
+                // 센서 타입에 따라 해당 데이터만 표시
+                let dataHtml = '';
+                switch(sensor.config.type) {
+                    case 'temp':
+                        dataHtml = `
+                            <div class="data-item">
+                                <span class="data-icon">🌡️</span>
+                                <span class="data-value">${sensor.data.temp}°C</span>
+                            </div>
+                        `;
+                        break;
+                    case 'humidity':
+                        dataHtml = `
+                            <div class="data-item">
+                                <span class="data-icon">💧</span>
+                                <span class="data-value">${sensor.data.humidity}%</span>
+                            </div>
+                        `;
+                        break;
+                    case 'co2':
+                        dataHtml = `
+                            <div class="data-item">
+                                <span class="data-icon">🌫️</span>
+                                <span class="data-value">${sensor.data.co2}ppm</span>
+                            </div>
+                        `;
+                        break;
+                    case 'light':
+                        dataHtml = `
+                            <div class="data-item">
+                                <span class="data-icon">☀️</span>
+                                <span class="data-value">${sensor.data.light}W/m²</span>
+                            </div>
+                        `;
+                        break;
+                }
+
+                html += `
+                    <div class="sensor-card ${selected ? 'selected' : ''}" onclick="selectSensor(${sensor.config.id})">
+                        <div class="sensor-header">
+                            <div class="sensor-name">${sensor.config.name}</div>
+                            <div class="sensor-status">
+                                <div class="status-dot"></div>
+                                ACTIVE
+                            </div>
+                        </div>
+<!--                        <div class="sensor-location">📍 ${sensor.config.location}</div>-->
+                        <div class="sensor-data">
+                            ${dataHtml}
+                        </div>
+                    </div>
+                `;
+            });
+
+            listContainer.innerHTML = html;
+        }
+
+        function updateAverageStats() {
+            // 각 센서 타입별로 데이터 가져오기
+            const tempSensor = sensors.find(s => s.config.type === 'temp');
+            const humiditySensor = sensors.find(s => s.config.type === 'humidity');
+            const co2Sensor = sensors.find(s => s.config.type === 'co2');
+            const lightSensor = sensors.find(s => s.config.type === 'light');
+
+            document.getElementById('avgTemp').textContent = tempSensor ? tempSensor.data.temp.toFixed(1) + '°C' : '-';
+            document.getElementById('avgHumidity').textContent = humiditySensor ? humiditySensor.data.humidity.toFixed(1) + '%' : '-';
+            document.getElementById('avgCO2').textContent = co2Sensor ? Math.round(co2Sensor.data.co2) + 'ppm' : '-';
+            document.getElementById('avgLight').textContent = lightSensor ? Math.round(lightSensor.data.light) + 'W/m²' : '-';
+        }
+
+        window.selectSensor = function(sensorId) {
+            selectedSensor = sensors.find(s => s.config.id === sensorId);
+            updateSensorList();
+
+            // Animate camera to sensor
+            if (selectedSensor && controls) {
+                const pos = selectedSensor.config.position;
+                animateCamera(pos.x + 0.25, pos.y + 0.15, pos.z + 0.25, pos.x, pos.y, pos.z);
+            }
+        }
+
+        function animateCamera(toX, toY, toZ, lookX, lookY, lookZ) {
+            const duration = 1000;
+            const startTime = Date.now();
+            const startPos = camera.position.clone();
+            const startTarget = controls.target.clone();
+
+            function update() {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const eased = 1 - Math.pow(1 - progress, 3); // easeOut
+
+                camera.position.x = startPos.x + (toX - startPos.x) * eased;
+                camera.position.y = startPos.y + (toY - startPos.y) * eased;
+                camera.position.z = startPos.z + (toZ - startPos.z) * eased;
+
+                controls.target.x = startTarget.x + (lookX - startTarget.x) * eased;
+                controls.target.y = startTarget.y + (lookY - startTarget.y) * eased;
+                controls.target.z = startTarget.z + (lookZ - startTarget.z) * eased;
+                controls.update();
+
+                if (progress < 1) {
+                    requestAnimationFrame(update);
+                }
+            }
+
+            update();
+        }
+
+        function onMouseMove(event) {
+            const canvas = document.getElementById('canvas');
+            const rect = canvas.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(sensors.map(s => s.mesh));
+
+            const tooltip = document.getElementById('tooltip');
+
+            if (intersects.length > 0) {
+                const sensor = sensors.find(s => s.mesh === intersects[0].object);
+                if (sensor) {
+                    // 센서 타입에 따라 해당 데이터만 표시
+                    let dataHtml = '';
+                    switch(sensor.config.type) {
+                        case 'temp':
+                            dataHtml = `
+                                <div class="tooltip-row">
+                                    <span>🌡️ 온도:</span>
+                                    <strong>${sensor.data.temp}°C</strong>
+                                </div>
+                            `;
+                            break;
+                        case 'humidity':
+                            dataHtml = `
+                                <div class="tooltip-row">
+                                    <span>💧 습도:</span>
+                                    <strong>${sensor.data.humidity}%</strong>
+                                </div>
+                            `;
+                            break;
+                        case 'co2':
+                            dataHtml = `
+                                <div class="tooltip-row">
+                                    <span>🌫️ CO₂:</span>
+                                    <strong>${sensor.data.co2}ppm</strong>
+                                </div>
+                            `;
+                            break;
+                        case 'light':
+                            dataHtml = `
+                                <div class="tooltip-row">
+                                    <span>☀️ 광량:</span>
+                                    <strong>${sensor.data.light}W/m²</strong>
+                                </div>
+                            `;
+                            break;
+                    }
+
+                    tooltip.innerHTML = `
+                        <div class="tooltip-title">${sensor.config.name}</div>
+                        <div class="tooltip-data">
+                            ${dataHtml}
+                        </div>
+                    `;
+                    tooltip.style.left = event.clientX + 15 + 'px';
+                    tooltip.style.top = event.clientY + 15 + 'px';
+                    tooltip.classList.add('show');
+                    canvas.style.cursor = 'pointer';
+                }
+            } else {
+                tooltip.classList.remove('show');
+                canvas.style.cursor = 'grab';
+            }
+        }
+
+        function onMouseClick(event) {
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(sensors.map(s => s.mesh));
+
+            if (intersects.length > 0) {
+                const sensor = sensors.find(s => s.mesh === intersects[0].object);
+                if (sensor) {
+                    selectSensor(sensor.config.id);
+                }
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Update controls
+            if (controls) controls.update();
+
+            // Animate sensor glow
+            sensors.forEach((sensor, index) => {
+                const time = Date.now() / 1000;
+                const scale = 1 + Math.sin(time * 2 + index) * 0.2;
+                sensor.glow.scale.set(scale, scale, scale);
+            });
+
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            const canvas = document.getElementById('canvas');
+            camera.aspect = canvas.clientWidth / canvas.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+        }
+
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

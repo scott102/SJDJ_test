@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>실증단지 SNS</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/sns_style.css">
+
+</head>
+<body>
+    <nav class="top-bar">
+        <div class="navbar_name">
+            <a href="/">S.J.D.J</a>
+        </div>
+
+        <ul class="navbar_list">
+            <li><a href="/about">실증단지 소개</a></li>
+            <li><a href="/datas">온실 3D 모델링</a></li>
+            <li><a href="/participate">실시간 데이터</a></li>
+            <li><a href="/sns">의견 게시판</a></li>
+            <li><a href="/aichat">AI 챗봇</a></li>
+        </ul>
+
+        <ul class="user-info">
+            {% if user %}
+                {{ user.username }} ({{ user.role }}) 님 로그인됨 |
+                <a href="/logout">로그아웃</a>
+            {% else %}
+                <a href="/login">로그인</a> /
+                <a href="/register">회원가입</a>
+            {% endif %}
+        </ul>
+    </nav>
+
+    <div class="sns-container">
+        <h1>실증단지 커뮤니티 게시판</h1>
+
+        <!-- 🔹 게시글 리스트 -->
+        <table>
+            <thead>
+                <tr>
+                    <th>제목</th>
+                    <th>작성자</th>
+                    <th>작성 시간</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for post in posts %}
+                <tr>
+                    <td>
+                        <a href="/post/{{ post.id }}" class="title-link">
+                            {{ post.title }}
+                        </a>
+                    </td>
+                    <td><strong>{{ post.username }}</strong> ({{ post.role }})</td>
+                    <td>{{ post.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+                    <td>{{ post.comment_count }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="2">게시물이 없습니다.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- 🔹 글쓰기 버튼 -->
+        <div style="text-align: right;">
+            <a href="/write" class="write-button">글쓰기</a>
+        </div>
+    </div>
+
+</body>
+</html>
