@@ -17,3 +17,4 @@ requests
 beautifulsoup4
 urllib3
 pydantic
+itsdangerous
