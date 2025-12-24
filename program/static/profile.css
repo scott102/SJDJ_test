@@ -1,0 +1,50 @@
+/* profile.css */
+
+.hero-image-section {
+    width: 100vw; /* Occupy full viewport width */
+    height: 400px; /* Adjust height as needed */
+    background-image: url('/static/images/tech-nature.jpg'); /* Your image path */
+    background-size: cover; /* Cover the entire area */
+    background-position: center; /* Center the image */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    text-shadow: 2px 2px 20px rgba(0, 0, 0, 0.7); /* For text readability */
+    /* 🚨 수정: body > *에서 상속받은 모든 마진을 제거하여 왼쪽 여백을 없앱니다. */
+    margin: 0;
+}
+.hero-image-section h1 {
+    font-size: 3em;
+    margin-bottom: 10px;
+    border-bottom: none;
+    text-shadow: 2px 2px 30px rgba(0, 0, 0, 1);/* Remove border from H1 if it was inherited */
+    color: white; /* Ensure text is white */
+}
+.hero-image-section p {
+    font-size: 1.5em;
+    text-shadow: 2px 2px 10px rgba(0, 0, 0, 5);
+    margin-top: 0;
+}
+
+/* 🚨 Ensure the top-bar is fixed to stay on top */
+.top-bar {
+    position: fixed; /* Make it stick to the top */
+    top: 0;
+    left: 0;
+    z-index: 1000; /* Ensure it's above other content */
+    width: 100vw; /* Make sure it spans full width */
+    /* Add any background color if not already set, to make it opaque */
+    background-color: #008000;
+}
+
+/* 🚨 수정: padding-top 값을 60px로 늘려 Hero Image가 완전히 보이도록 조정합니다. */
+body {
+    padding-top: 60px; /* 상단바 높이보다 약간 크게 설정 */
+}
+
+/* Further adjustments for main content below the hero image */
+.main-section {
+    padding-top: 50px; /* Add some space above the main cards */
+}

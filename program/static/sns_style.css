@@ -1,0 +1,74 @@
+/* sns_style.css */
+
+/* 🚨 body는 style.css에서 처리되므로 여기서는 배경색만 남깁니다. */
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f5f5f5;
+}
+
+/* 🚨 새로운 컨테이너 클래스 추가: 최대 너비를 설정하고 중앙에 배치 */
+.sns-container {
+    max-width: 1500px; /* 원하는 최대 너비 설정 (예: 1000px) */
+    margin: 0 auto; /* 중앙 정렬 */
+    padding: 20px;
+}
+
+.user-info {
+    text-align: right;
+    margin-bottom: 20px;
+    color: #444;
+}
+
+h1 {
+    text-align: center;
+    color: #2c3e50;
+    /* 🚨 h1도 중앙 컨테이너 안에서 정렬되도록 수정 */
+    width: 100%;
+    margin-top: 0;
+}
+
+table {
+    width: 100%;
+    /* 🚨 table 자체는 sns-container의 100%를 따릅니다. */
+    border-collapse: collapse;
+    background-color: #fff;
+    /* max-width는 컨테이너에 설정 */
+}
+
+th, td {
+    padding: 12px;
+    border-bottom: 1px solid #ccc;
+    text-align: left;
+}
+
+th {
+    background-color: #2c3e50;
+    color: #fff;
+}
+
+tr:hover {
+    background-color: #f0f0f0;
+}
+
+.title-link {
+    text-decoration: none;
+    color: #2c3e50;
+}
+
+.title-link:hover {
+    text-decoration: underline;
+}
+
+.write-button {
+    display: inline-block;
+    margin-top: 20px;
+    padding: 10px 20px;
+    background-color: #2c3e50;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+}
+
+.write-button:hover {
+    background-color: #1a242f;
+}
